@@ -35,6 +35,10 @@ export function MonitoringTable() {
   const [month, setMonth] = useState(today.getMonth());
   const [entries, setEntries] = useState<Map<CellKey, Entry>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [manageOpen, setManageOpen] = useState(false);
+  const { persons: personItems, locations: locationItems, refresh: refreshLists } = useDashboardLists();
+  const PERSONS = useMemo(() => personItems.map((p) => p.name), [personItems]);
+  const LOCATIONS = useMemo(() => locationItems.map((l) => l.name), [locationItems]);
   const savingRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const days = daysInMonth(year, month);
