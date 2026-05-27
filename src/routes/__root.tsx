@@ -8,6 +8,9 @@ import {
   Scripts,
 } from "@tanstack/react-router";
 import { Toaster } from "sonner";
+import { useEffect } from "react";
+import { startOfflineSync } from "@/lib/offline-queue";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 import appCss from "../styles.css?url";
 
@@ -116,10 +119,15 @@ function RootShell({ children }: { children: React.ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
 
+  useEffect(() => startOfflineSync(), []);
+
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
       <Outlet />
+      <div className="fixed bottom-4 left-4 z-50">
+        <OfflineIndicator />
+      </div>
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
   );
