@@ -8,6 +8,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { parseMonitoringPdf } from "@/lib/pdf-import";
+import { MonthlyAnalysis } from "@/components/MonthlyAnalysis";
 
 type Entry = {
   id?: string;
@@ -513,6 +514,16 @@ export function MonitoringTable() {
           </table>
         </div>
       </div>
+
+
+
+      <MonthlyAnalysis
+        entries={Array.from(entries.values())}
+        persons={PERSONS}
+        monthName={monthName}
+      />
+
+
 
       <ManageListsDialog
         open={manageOpen}
