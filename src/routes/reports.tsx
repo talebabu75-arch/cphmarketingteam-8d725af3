@@ -1195,6 +1195,52 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
     }
   };
 
+  const handleSummary = async () => {
+    const prevMonthDate = new Date(year, month - 1, 1);
+    const prevMonth = prevMonthDate.getMonth();
+    const prevYear = prevMonthDate.getFullYear();
+    if (prevYear !== year) {
+      toast.error("পূর্ববর্তী মাসের ডেটা পাওয়া যাচ্ছে না।");
+      return;
+    }
+    const cur = computeStats(month);
+    const prev = computeStats(prevMonth);
+    const sorted = [...cur.perPerson].sort((a, b) => b.performance - a.performance);
+    const topPerformer = sorted[0]?.name ?? null;
+    const weakestPerformer = sorted.length > 1 ? sorted[sorted.length - 1].name : null;
+
+    setSummaryLoading(true);
+    setSummary("");
+    try {
+      const res = await runSummary({
+        data: {
+          monthLabel: `${MONTH_NAMES[month]} ${year}`,
+          previousMonthLabel: `${MONTH_NAMES[prevMonth]} ${year}`,
+          teamTotals: {
+            totalVisits: cur.totalVisits,
+            previousTotalVisits: prev.totalVisits,
+            avgAttendance: cur.avgAttendance,
+            previousAvgAttendance: prev.avgAttendance,
+            avgPerformance: cur.avgPerformance,
+            previousAvgPerformance: prev.avgPerformance,
+            locationsCovered: cur.locationsCovered,
+            previousLocationsCovered: prev.locationsCovered,
+          },
+          topPerformer,
+          weakestPerformer,
+        },
+      });
+      setSummary(res.summary);
+    } catch (e: any) {
+      const msg = String(e?.message ?? e);
+      if (msg.includes("429")) toast.error("Rate limit — একটু পর আবার চেষ্টা করুন।");
+      else if (msg.includes("402")) toast.error("AI credit শেষ — Workspace settings থেকে credit যোগ করুন।");
+      else toast.error("Summary তৈরি করা যায়নি: " + msg);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
