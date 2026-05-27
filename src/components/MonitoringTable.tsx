@@ -542,6 +542,70 @@ export function MonitoringTable() {
         locations={locationItems}
         onChanged={refreshLists}
       />
+
+      {personReportOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setPersonReportOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border bg-card p-5 shadow-lg space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-lg font-semibold">Person Report</h3>
+              <p className="text-sm text-muted-foreground">যাদের রিপোর্ট দরকার, তাদের সিলেক্ট করুন</p>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-auto">
+              {PERSONS.map((p) => {
+                const checked = selectedReportPersons.includes(p);
+                return (
+                  <label key={p} className="flex items-center gap-2 cursor-pointer rounded-md border px-3 py-2 hover:bg-accent">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setSelectedReportPersons((prev) =>
+                          e.target.checked ? [...prev, p] : prev.filter((x) => x !== p),
+                        );
+                      }}
+                    />
+                    <span className="text-sm">{p}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
+              <button
+                onClick={() => setSelectedReportPersons([])}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setPersonReportOpen(false)}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={selectedReportPersons.length === 0}
+                onClick={() => { downloadExcel(selectedReportPersons); }}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
+              >
+                Excel
+              </button>
+              <button
+                disabled={selectedReportPersons.length === 0}
+                onClick={() => { downloadPdf(selectedReportPersons); }}
+                className="rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 disabled:opacity-50"
+              >
+                PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
