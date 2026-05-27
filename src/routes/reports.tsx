@@ -1271,6 +1271,34 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
         </div>
       </div>
 
+      {/* Auto Report Summary */}
+      <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-card shadow-sm p-5">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Sparkles className="size-4 text-primary" /> Auto Report Summary
+          </h3>
+          <button
+            onClick={handleSummary}
+            disabled={summaryLoading || persons.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
+          >
+            {summaryLoading ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+            {summaryLoading ? "লেখা হচ্ছে…" : summary ? "Regenerate" : "Summary তৈরি করুন"}
+          </button>
+        </div>
+        {summaryLoading && (
+          <p className="text-sm text-muted-foreground">AI executive summary লিখছে…</p>
+        )}
+        {!summaryLoading && !summary && (
+          <p className="text-sm text-muted-foreground">
+            এক-প্যারাগ্রাফের executive summary — যেমন "This month overall performance improved by 12%"।
+          </p>
+        )}
+        {!summaryLoading && summary && (
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{summary}</p>
+        )}
+      </div>
+
       <div className="rounded-xl border bg-card shadow-sm p-5 min-h-[200px]">
         {loading && (
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
