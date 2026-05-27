@@ -39,6 +39,8 @@ export function MonitoringTable() {
   const [entries, setEntries] = useState<Map<CellKey, Entry>>(new Map());
   const [loading, setLoading] = useState(true);
   const [manageOpen, setManageOpen] = useState(false);
+  const [personReportOpen, setPersonReportOpen] = useState(false);
+  const [selectedReportPersons, setSelectedReportPersons] = useState<string[]>([]);
   const { persons: personItems, locations: locationItems, refresh: refreshLists } = useDashboardLists();
   const PERSONS = useMemo(() => personItems.map((p) => p.name), [personItems]);
   const LOCATIONS = useMemo(() => locationItems.map((l) => l.name), [locationItems]);
