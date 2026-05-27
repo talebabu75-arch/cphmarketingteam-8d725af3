@@ -48,12 +48,14 @@ function Index() {
       <header className="border-b bg-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="size-9 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-              <BarChart3 className="size-5" />
-            </div>
+            <img
+              src={new URL("../assets/company-logo.png", import.meta.url).href}
+              alt="Cumilla People's Hospital"
+              className="size-10 object-contain"
+            />
             <div>
-              <h1 className="text-lg font-semibold tracking-tight">Marketing Monitoring</h1>
-              <p className="text-xs text-muted-foreground">Daily location & visit tracker</p>
+              <h1 className="text-lg font-semibold tracking-tight">Cumilla People's Hospital</h1>
+              <p className="text-xs text-muted-foreground">Marketing Monitoring — Daily tracker</p>
             </div>
           </div>
           <div className="flex items-center gap-3">

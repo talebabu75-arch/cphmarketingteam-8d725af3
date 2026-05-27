@@ -1,5 +1,25 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import companyLogo from "@/assets/company-logo.png";
+
+let _logoData: string | null = null;
+async function loadLogo(): Promise<string | null> {
+  if (_logoData) return _logoData;
+  try {
+    const res = await fetch(companyLogo);
+    const blob = await res.blob();
+    _logoData = await new Promise<string>((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result as string);
+      r.onerror = reject;
+      r.readAsDataURL(blob);
+    });
+    return _logoData;
+  } catch {
+    return null;
+  }
+}
+
 
 export type PdfSection = {
   title: string;
@@ -17,37 +37,40 @@ export type PdfReportOptions = {
   filename: string;
 };
 
-export function generateReportPDF(opts: PdfReportOptions) {
+export async function generateReportPDF(opts: PdfReportOptions) {
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
   const margin = 40;
-  const company = opts.company ?? "Marketing Monitoring";
+  const company = opts.company ?? "Cumilla People's Hospital";
   const now = new Date();
   const dateStr = now.toLocaleString();
+  const logo = await loadLogo();
 
   // ===== Header band =====
-  doc.setFillColor(15, 23, 42); // slate-900
+  doc.setFillColor(15, 23, 42);
   doc.rect(0, 0, pageW, 90, "F");
 
-  // Logo circle
-  doc.setFillColor(59, 130, 246); // primary blue
-  doc.circle(margin + 18, 45, 18, "F");
+  if (logo) {
+    try { doc.addImage(logo, "PNG", margin, 18, 54, 54); } catch { /* ignore */ }
+  } else {
+    doc.setFillColor(59, 130, 246);
+    doc.circle(margin + 18, 45, 18, "F");
+    doc.setTextColor(255, 255, 255);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(16);
+    doc.text("C", margin + 13, 51);
+  }
+
   doc.setTextColor(255, 255, 255);
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text("M", margin + 13, 51);
-
-  // Company name + title
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(16);
-  doc.text(company, margin + 50, 40);
+  doc.setFontSize(15);
+  doc.text(company, margin + 68, 40);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   doc.setTextColor(203, 213, 225);
-  doc.text("Daily Location & Visit Tracker", margin + 50, 56);
+  doc.text("Marketing Monitoring — Daily Location & Visit Tracker", margin + 68, 56);
 
-  // Date (right side)
   doc.setFontSize(9);
   doc.text(`Generated: ${dateStr}`, pageW - margin, 40, { align: "right" });
   doc.text(`Report ID: ${now.getTime().toString(36).toUpperCase()}`, pageW - margin, 56, { align: "right" });
