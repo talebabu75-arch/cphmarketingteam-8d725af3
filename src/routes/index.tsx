@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { MonitoringTable } from "@/components/MonitoringTable";
 import { LiveSummaryCards } from "@/components/LiveSummaryCards";
 import { useDashboardLists } from "@/lib/use-lists";
-import { LogOut, BarChart3, User } from "lucide-react";
+import { LogOut, BarChart3, User, FileText } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -58,6 +58,12 @@ function Index() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground hidden sm:inline">{email}</span>
+            <Link
+              to="/reports"
+              className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition"
+            >
+              <FileText className="size-3.5" /> Reports
+            </Link>
             <button
               onClick={() => supabase.auth.signOut()}
               className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition"
