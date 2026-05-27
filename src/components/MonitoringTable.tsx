@@ -9,6 +9,7 @@ import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
 import { parseMonitoringPdf } from "@/lib/pdf-import";
 import { MonthlyAnalysis } from "@/components/MonthlyAnalysis";
+import { enqueue as queueOfflineEntry } from "@/lib/offline-queue";
 
 type Entry = {
   id?: string;
@@ -119,13 +120,23 @@ export function MonitoringTable() {
         slot_11: next.slot_11,
         slot_14: next.slot_14,
       };
+
+      // Offline → queue immediately, no network call
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        queueOfflineEntry(payload);
+        toast.message("Offline — local এ save করা হলো, online হলে sync হবে");
+        return;
+      }
+
       const { data, error } = await supabase
         .from("monitoring_entries")
         .upsert(payload, { onConflict: "entry_date,person" })
         .select()
         .single();
       if (error) {
-        toast.error(`Save failed: ${error.message}`);
+        // Network / server failure → queue for later
+        queueOfflineEntry(payload);
+        toast.warning(`Save queued offline: ${error.message}`);
         return;
       }
       setEntries((prev) => {
