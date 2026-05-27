@@ -2,7 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { STATUSES, SLOTS, statusClass } from "@/lib/dashboard-config";
-import { ArrowLeft, User } from "lucide-react";
+import { ArrowLeft, User, Award } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
   PieChart, Pie, Cell, LineChart, Line,
