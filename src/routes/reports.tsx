@@ -8,8 +8,9 @@ import { generateReportPDF } from "@/lib/pdf-report";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
-  CartesianGrid, LineChart, Line,
+  CartesianGrid, LineChart, Line, Cell,
 } from "recharts";
+import { Trophy, TrendingDown, Grid3x3 } from "lucide-react";
 
 type Entry = {
   entry_date: string;
@@ -127,11 +128,12 @@ function ReportsPage() {
 
       <div className="max-w-[1600px] mx-auto px-6 py-6">
         <Tabs defaultValue="person" className="space-y-4">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full sm:w-auto">
             <TabsTrigger value="person">Person-wise</TabsTrigger>
             <TabsTrigger value="daily">Daily</TabsTrigger>
             <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly Comparison</TabsTrigger>
+            <TabsTrigger value="monthly">Monthly</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="person">
@@ -145,6 +147,9 @@ function ReportsPage() {
           </TabsContent>
           <TabsContent value="monthly">
             <MonthlyComparison entries={entries} persons={persons.map((p) => p.name)} year={year} />
+          </TabsContent>
+          <TabsContent value="analytics">
+            <AnalyticsTab entries={entries} persons={persons.map((p) => p.name)} year={year} />
           </TabsContent>
         </Tabs>
       </div>
@@ -644,6 +649,215 @@ function MonthlyComparison({ entries, persons, year }: { entries: Entry[]; perso
               ))}
             </tbody>
           </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- Analytics: Best Performer / Lowest Attendance / Heatmap ---------- */
+function AnalyticsTab({ entries, persons, year }: { entries: Entry[]; persons: string[]; year: number }) {
+  const [month, setMonth] = useState<number | "all">("all");
+
+  const filtered = useMemo(() => {
+    if (month === "all") return entries;
+    return entries.filter((e) => new Date(e.entry_date).getMonth() === month);
+  }, [entries, month]);
+
+  // Per-person score / yes / no / loff
+  const perPerson = useMemo(() => {
+    return persons.map((p) => {
+      const b: Record<string, number> = {};
+      STATUSES.forEach((s) => (b[s] = 0));
+      let extra = 0, days = 0;
+      filtered.filter((e) => e.person === p).forEach((e) => {
+        days += 1;
+        const r = countEntry(e, b);
+        extra += r.extraDoff;
+      });
+      return {
+        name: p,
+        score: score(b, extra),
+        yes: b["Yes"] ?? 0,
+        no: b["No"] ?? 0,
+        loff: b["L.off"] ?? 0,
+        days,
+      };
+    });
+  }, [filtered, persons]);
+
+  const bestPerformers = useMemo(
+    () => [...perPerson].sort((a, b) => b.score - a.score || b.yes - a.yes),
+    [perPerson],
+  );
+  const lowestAttendance = useMemo(
+    () => [...perPerson].sort((a, b) => (a.score - b.score) || (b.no + b.loff - a.no - a.loff)),
+    [perPerson],
+  );
+
+  // Heatmap: rows = persons, cols = days of selected month (or year-by-week if all)
+  const heatmap = useMemo(() => {
+    if (month === "all") {
+      // 12 months × persons
+      const cols = MONTH_NAMES.map((mn, mi) => ({ key: mn, idx: mi }));
+      const matrix = persons.map((p) => {
+        return cols.map(({ idx }) => {
+          const monthEntries = entries.filter((e) => e.person === p && new Date(e.entry_date).getMonth() === idx);
+          let yes = 0;
+          monthEntries.forEach((e) => {
+            SLOTS.forEach((s) => { if (e[s.key as "slot_10"|"slot_11"|"slot_14"] === "Yes") yes += 1; });
+          });
+          return yes;
+        });
+      });
+      return { cols: cols.map((c) => c.key), matrix };
+    }
+    // days in this month
+    const days = new Date(year, (month as number) + 1, 0).getDate();
+    const cols = Array.from({ length: days }, (_, i) => String(i + 1).padStart(2, "0"));
+    const matrix = persons.map((p) => {
+      return cols.map((_, di) => {
+        const dateStr = `${year}-${String((month as number) + 1).padStart(2, "0")}-${String(di + 1).padStart(2, "0")}`;
+        const e = entries.find((x) => x.person === p && x.entry_date === dateStr);
+        if (!e) return 0;
+        let yes = 0;
+        SLOTS.forEach((s) => { if (e[s.key as "slot_10"|"slot_11"|"slot_14"] === "Yes") yes += 1; });
+        return yes;
+      });
+    });
+    return { cols, matrix };
+  }, [entries, persons, year, month]);
+
+  const maxHeat = Math.max(1, ...heatmap.matrix.flat());
+  function heatColor(v: number) {
+    if (v === 0) return "bg-muted/30";
+    const r = v / maxHeat;
+    if (r > 0.8) return "bg-green-600 text-white";
+    if (r > 0.6) return "bg-green-500 text-white";
+    if (r > 0.4) return "bg-green-400 text-green-950";
+    if (r > 0.2) return "bg-green-300 text-green-950";
+    return "bg-green-200 text-green-900";
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="text-xl font-semibold">Performance Analytics</h2>
+          <p className="text-sm text-muted-foreground">Best performer, lowest attendance ও heatmap</p>
+        </div>
+        <select
+          value={String(month)}
+          onChange={(e) => setMonth(e.target.value === "all" ? "all" : Number(e.target.value))}
+          className="rounded-md border bg-card px-3 py-1.5 text-sm"
+        >
+          <option value="all">Full year ({year})</option>
+          {MONTH_NAMES.map((m, i) => <option key={m} value={i}>{m} {year}</option>)}
+        </select>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        {/* Best Performer */}
+        <div className="rounded-xl border bg-card shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Trophy className="size-4 text-yellow-600" />
+            <h3 className="text-sm font-semibold">Best Performers (by score)</h3>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={bestPerformers} layout="vertical" margin={{ left: 8 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis type="number" domain={[0, 100]} tick={{ fontSize: 11 }} />
+                <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={90} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <Bar dataKey="score" name="Score %" radius={[0, 4, 4, 0]}>
+                  {bestPerformers.map((r, i) => (
+                    <Cell key={r.name} fill={i === 0 ? "#eab308" : i === 1 ? "#94a3b8" : i === 2 ? "#b45309" : "#22c55e"} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <ol className="mt-3 space-y-1 text-sm">
+            {bestPerformers.slice(0, 5).map((r, i) => (
+              <li key={r.name} className="flex justify-between border-b last:border-0 py-1">
+                <span><b>#{i + 1}</b> {r.name}</span>
+                <span className="text-muted-foreground">{r.score}% • {r.yes} visits</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+
+        {/* Lowest Attendance */}
+        <div className="rounded-xl border bg-card shadow-sm p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingDown className="size-4 text-red-600" />
+            <h3 className="text-sm font-semibold">Lowest Attendance</h3>
+          </div>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={lowestAttendance.slice(0, 8)}>
+                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
+                <Tooltip contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: 8, fontSize: 12 }} />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
+                <Bar dataKey="no" name="No" stackId="a" fill="#ef4444" />
+                <Bar dataKey="loff" name="L.off" stackId="a" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <ol className="mt-3 space-y-1 text-sm">
+            {lowestAttendance.slice(0, 5).map((r, i) => (
+              <li key={r.name} className="flex justify-between border-b last:border-0 py-1">
+                <span><b>#{i + 1}</b> {r.name}</span>
+                <span className="text-muted-foreground">{r.score}% • {r.no + r.loff} absences</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      {/* Heatmap */}
+      <div className="rounded-xl border bg-card shadow-sm p-4">
+        <div className="flex items-center gap-2 mb-3">
+          <Grid3x3 className="size-4 text-primary" />
+          <h3 className="text-sm font-semibold">
+            Visit Heatmap — {month === "all" ? `Yearly (by month)` : `${MONTH_NAMES[month as number]} ${year} (by day)`}
+          </h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="text-xs border-separate border-spacing-0.5">
+            <thead>
+              <tr>
+                <th className="px-2 py-1 text-left sticky left-0 bg-card">Person</th>
+                {heatmap.cols.map((c) => (
+                  <th key={c} className="px-1 py-1 font-normal text-muted-foreground min-w-[28px] text-center">{c}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {persons.map((p, ri) => (
+                <tr key={p}>
+                  <td className="px-2 py-1 font-medium sticky left-0 bg-card whitespace-nowrap">{p}</td>
+                  {heatmap.matrix[ri].map((v, ci) => (
+                    <td key={ci} className={`text-center font-medium rounded ${heatColor(v)}`} style={{ minWidth: 28, height: 24 }}>
+                      {v || ""}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="flex items-center gap-2 mt-3 text-xs text-muted-foreground">
+          <span>Less</span>
+          <span className="inline-block w-4 h-4 rounded bg-muted/30" />
+          <span className="inline-block w-4 h-4 rounded bg-green-200" />
+          <span className="inline-block w-4 h-4 rounded bg-green-400" />
+          <span className="inline-block w-4 h-4 rounded bg-green-500" />
+          <span className="inline-block w-4 h-4 rounded bg-green-600" />
+          <span>More</span>
         </div>
       </div>
     </div>

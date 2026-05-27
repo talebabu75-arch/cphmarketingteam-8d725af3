@@ -14,6 +14,8 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as PersonNameRouteImport } from './routes/person.$name'
 import { Route as AdminUsersRouteImport } from './routes/admin.users'
+import { Route as AdminApprovalsRouteImport } from './routes/admin.approvals'
+import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
@@ -40,11 +42,23 @@ const AdminUsersRoute = AdminUsersRouteImport.update({
   path: '/admin/users',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminApprovalsRoute = AdminApprovalsRouteImport.update({
+  id: '/admin/approvals',
+  path: '/admin/approvals',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminActivityRoute = AdminActivityRouteImport.update({
+  id: '/admin/activity',
+  path: '/admin/activity',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/admin/activity': typeof AdminActivityRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/users': typeof AdminUsersRoute
   '/person/$name': typeof PersonNameRoute
 }
@@ -52,6 +66,8 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/admin/activity': typeof AdminActivityRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/users': typeof AdminUsersRoute
   '/person/$name': typeof PersonNameRoute
 }
@@ -60,19 +76,37 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/admin/activity': typeof AdminActivityRoute
+  '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/users': typeof AdminUsersRoute
   '/person/$name': typeof PersonNameRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/login' | '/reports' | '/admin/users' | '/person/$name'
+  fullPaths:
+    | '/'
+    | '/login'
+    | '/reports'
+    | '/admin/activity'
+    | '/admin/approvals'
+    | '/admin/users'
+    | '/person/$name'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/login' | '/reports' | '/admin/users' | '/person/$name'
+  to:
+    | '/'
+    | '/login'
+    | '/reports'
+    | '/admin/activity'
+    | '/admin/approvals'
+    | '/admin/users'
+    | '/person/$name'
   id:
     | '__root__'
     | '/'
     | '/login'
     | '/reports'
+    | '/admin/activity'
+    | '/admin/approvals'
     | '/admin/users'
     | '/person/$name'
   fileRoutesById: FileRoutesById
@@ -81,6 +115,8 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
+  AdminActivityRoute: typeof AdminActivityRoute
+  AdminApprovalsRoute: typeof AdminApprovalsRoute
   AdminUsersRoute: typeof AdminUsersRoute
   PersonNameRoute: typeof PersonNameRoute
 }
@@ -122,6 +158,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminUsersRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/approvals': {
+      id: '/admin/approvals'
+      path: '/admin/approvals'
+      fullPath: '/admin/approvals'
+      preLoaderRoute: typeof AdminApprovalsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/activity': {
+      id: '/admin/activity'
+      path: '/admin/activity'
+      fullPath: '/admin/activity'
+      preLoaderRoute: typeof AdminActivityRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -129,6 +179,8 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
+  AdminActivityRoute: AdminActivityRoute,
+  AdminApprovalsRoute: AdminApprovalsRoute,
   AdminUsersRoute: AdminUsersRoute,
   PersonNameRoute: PersonNameRoute,
 }

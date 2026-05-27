@@ -14,6 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
+      activity_logs: {
+        Row: {
+          action: string
+          changes: Json | null
+          created_at: string
+          entry_date: string | null
+          id: string
+          person: string | null
+          record_id: string | null
+          table_name: string
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          changes?: Json | null
+          created_at?: string
+          entry_date?: string | null
+          id?: string
+          person?: string | null
+          record_id?: string | null
+          table_name: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          changes?: Json | null
+          created_at?: string
+          entry_date?: string | null
+          id?: string
+          person?: string | null
+          record_id?: string | null
+          table_name?: string
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       dashboard_locations: {
         Row: {
           created_at: string
@@ -58,6 +97,8 @@ export type Database = {
       }
       monitoring_entries: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
           created_at: string
           entry_date: string
           id: string
@@ -66,10 +107,14 @@ export type Database = {
           slot_10: string | null
           slot_11: string | null
           slot_14: string | null
+          status: string
+          submitted_by: string | null
           updated_at: string
           updated_by: string | null
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           entry_date: string
           id?: string
@@ -78,10 +123,14 @@ export type Database = {
           slot_10?: string | null
           slot_11?: string | null
           slot_14?: string | null
+          status?: string
+          submitted_by?: string | null
           updated_at?: string
           updated_by?: string | null
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
           created_at?: string
           entry_date?: string
           id?: string
@@ -90,6 +139,8 @@ export type Database = {
           slot_10?: string | null
           slot_11?: string | null
           slot_14?: string | null
+          status?: string
+          submitted_by?: string | null
           updated_at?: string
           updated_by?: string | null
         }
