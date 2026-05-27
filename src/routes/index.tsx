@@ -86,6 +86,7 @@ function Index() {
           />
         </div>
       </footer>
+      <QuickAddFab />
     </main>
   );
 }
