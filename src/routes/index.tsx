@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MonitoringTable } from "@/components/MonitoringTable";
 import { LiveSummaryCards } from "@/components/LiveSummaryCards";
+import { QuickAddFab } from "@/components/QuickAddFab";
 import { useDashboardLists } from "@/lib/use-lists";
 import { LogOut, BarChart3, User, FileText } from "lucide-react";
 
