@@ -46,6 +46,11 @@ export function MonitoringTable() {
   const [manageOpen, setManageOpen] = useState(false);
   const [personReportOpen, setPersonReportOpen] = useState(false);
   const [selectedReportPersons, setSelectedReportPersons] = useState<string[]>([]);
+  const [rangeOpen, setRangeOpen] = useState(false);
+  const [rangeFrom, setRangeFrom] = useState<string>(fmtDate(today.getFullYear(), today.getMonth(), 1));
+  const [rangeTo, setRangeTo] = useState<string>(fmtDate(today.getFullYear(), today.getMonth(), today.getDate()));
+  const [rangePersons, setRangePersons] = useState<string[]>([]);
+  const [rangeBusy, setRangeBusy] = useState(false);
   const { persons: personItems, locations: locationItems, refresh: refreshLists } = useDashboardLists();
   const PERSONS = useMemo(() => personItems.map((p) => p.name), [personItems]);
   const LOCATIONS = useMemo(() => locationItems.map((l) => l.name), [locationItems]);
