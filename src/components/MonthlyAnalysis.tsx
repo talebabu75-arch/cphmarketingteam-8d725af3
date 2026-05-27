@@ -123,7 +123,7 @@ export function MonthlyAnalysis({
         <div className="rounded-xl border bg-card shadow-sm p-4">
           <h3 className="text-sm font-medium mb-3">Overall Distribution</h3>
           <div className="h-72">
-            {pieData.length === 0 ? (
+            {!mounted ? null : pieData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
                 কোনো ডাটা নেই
               </div>
