@@ -410,11 +410,14 @@ export function MonitoringTable() {
           <button onClick={prevMonth} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">←</button>
           <div className="rounded-md border bg-card px-4 py-1.5 text-sm font-medium min-w-[180px] text-center">{monthName}</div>
           <button onClick={nextMonth} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">→</button>
-          <button onClick={downloadPdf} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
+          <button onClick={() => downloadPdf()} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
             Download PDF
           </button>
-          <button onClick={downloadExcel} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+          <button onClick={() => downloadExcel()} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
             Download Excel
+          </button>
+          <button onClick={() => setPersonReportOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+            Person Report
           </button>
           <label className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition cursor-pointer">
             Import Excel
