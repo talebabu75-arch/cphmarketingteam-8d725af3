@@ -236,7 +236,8 @@ export function MonitoringTable() {
       doc.setTextColor(30, 30, 30);
     });
 
-    doc.save(`monitoring-${year}-${String(month + 1).padStart(2, "0")}.pdf`);
+    const suffix = isFiltered ? `-${personsList.join("_")}` : "";
+    doc.save(`monitoring-${year}-${String(month + 1).padStart(2, "0")}${suffix}.pdf`);
   }
 
   function downloadExcel() {
