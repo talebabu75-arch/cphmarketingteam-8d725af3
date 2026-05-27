@@ -409,6 +409,28 @@ function WeeklyReport({ entries, persons, year }: { entries: Entry[]; persons: s
     downloadCSV(`weekly-report-${start}_${end}.csv`, [header, ...body]);
   };
 
+  const handlePDF = () => {
+    const topPerformer = rows[0]?.name ?? "—";
+    const avgScore = rows.length ? Math.round(rows.reduce((a, r) => a + r.score, 0) / rows.length) : 0;
+    const totalVisits = rows.reduce((a, r) => a + ((r as any)["Yes"] ?? 0), 0);
+    generateReportPDF({
+      title: "Weekly Performance Report",
+      subtitle: `${label} • Year ${year}`,
+      summary: [
+        { label: "Top Performer", value: topPerformer },
+        { label: "Avg Score", value: `${avgScore}%` },
+        { label: "Total Visits", value: totalVisits },
+        { label: "Active Days", value: rows.reduce((a, r) => a + r.days, 0) },
+      ],
+      sections: [{
+        title: "Weekly Performance Ranking",
+        head: ["Name", ...STATUSES, "Extra D.off", "Days", "Score %"],
+        body: rows.map((r) => [r.name, ...STATUSES.map((s) => (r as any)[s] || "-"), r.extra || "-", r.days, `${r.score}%`]),
+      }],
+      filename: `weekly-report-${start}_${end}.pdf`,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -416,12 +438,15 @@ function WeeklyReport({ entries, persons, year }: { entries: Entry[]; persons: s
           <h2 className="text-xl font-semibold">Weekly Report</h2>
           <p className="text-sm text-muted-foreground">{label} ({year})</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setWeekOffset(weekOffset - 1)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">← Prev</button>
           <button onClick={() => setWeekOffset(0)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">This Week</button>
           <button onClick={() => setWeekOffset(weekOffset + 1)} disabled={weekOffset >= 0} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-40">Next →</button>
+          <button onClick={handlePDF} className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90">
+            <FileDown className="size-3.5" /> PDF
+          </button>
           <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
-            <Download className="size-3.5" /> Export
+            <Download className="size-3.5" /> CSV
           </button>
         </div>
       </div>
