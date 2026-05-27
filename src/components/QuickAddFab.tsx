@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, UserPlus, MapPin, FileText, X, Shield } from "lucide-react";
+import { Plus, UserPlus, MapPin, FileText, X, Shield, ClipboardList, Activity } from "lucide-react";
 import { useNavigate } from "@tanstack/react-router";
 import { useUserRole } from "@/hooks/useUserRole";
 import { addItem } from "@/lib/use-lists";
