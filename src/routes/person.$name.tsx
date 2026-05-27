@@ -338,6 +338,13 @@ function PersonProfile() {
                 ))}
               </select>
             )}
+            <button
+              onClick={downloadAchievementCard}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:bg-primary/90 transition disabled:opacity-50"
+            >
+              <Award className="size-3.5" /> Achievement Card
+            </button>
             {period === "quarterly" && (
               <select
                 value={quarter}
