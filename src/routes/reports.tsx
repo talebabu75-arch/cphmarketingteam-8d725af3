@@ -538,6 +538,33 @@ function MonthlyComparison({ entries, persons, year }: { entries: Entry[]; perso
     downloadCSV(`monthly-comparison-${year}.csv`, [header, ...body]);
   };
 
+  const handlePDF = () => {
+    const totalVisits = data.reduce((a, d) => a + d.__visits, 0);
+    const bestMonth = data.reduce((a, d) => (d.__visits > a.__visits ? d : a), data[0]);
+    const personAvg = persons.map((p) => {
+      const scores = data.map((d) => d[p]).filter((v) => v > 0);
+      const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      return { p, avg };
+    });
+    const topPerson = personAvg.sort((a, b) => b.avg - a.avg)[0];
+    generateReportPDF({
+      title: "Monthly Comparison Report",
+      subtitle: `12-month performance breakdown for ${year}`,
+      summary: [
+        { label: "Total Visits", value: totalVisits },
+        { label: "Best Month", value: bestMonth?.month ?? "—" },
+        { label: "Top Performer", value: topPerson?.p ?? "—" },
+        { label: "Avg Score", value: `${topPerson?.avg ?? 0}%` },
+      ],
+      sections: [{
+        title: "Monthly Performance Score (%)",
+        head: ["Month", ...persons, "Visits"],
+        body: data.map((d) => [d.month, ...persons.map((p) => (d[p] ? `${d[p]}%` : "-")), d.__visits]),
+      }],
+      filename: `monthly-comparison-${year}.pdf`,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -545,9 +572,14 @@ function MonthlyComparison({ entries, persons, year }: { entries: Entry[]; perso
           <h2 className="text-xl font-semibold">Monthly Comparison</h2>
           <p className="text-sm text-muted-foreground">{year} সালের ১২ মাসের পারফর্মেন্স তুলনা</p>
         </div>
-        <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
-          <Download className="size-3.5" /> Export
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handlePDF} className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90">
+            <FileDown className="size-3.5" /> One-Click PDF
+          </button>
+          <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
+            <Download className="size-3.5" /> CSV
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm p-4">
