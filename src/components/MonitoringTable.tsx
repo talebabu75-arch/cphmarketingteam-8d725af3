@@ -32,6 +32,11 @@ function fmtDate(year: number, month: number, day: number) {
   return `${year}-${m}-${d}`;
 }
 
+function isFridayDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).getDay() === 5;
+}
+
 export function MonitoringTable() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
