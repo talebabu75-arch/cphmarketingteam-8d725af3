@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { parseMonitoringPdf } from "@/lib/pdf-import";
 
 type Entry = {
   id?: string;
