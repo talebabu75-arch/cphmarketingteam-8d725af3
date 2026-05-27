@@ -73,3 +73,34 @@ function Index() {
     </main>
   );
 }
+
+function PersonProfiles() {
+  const { persons, loading } = useDashboardLists();
+  if (loading || persons.length === 0) return null;
+  return (
+    <section className="rounded-xl border bg-card shadow-sm p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold">Team Profiles</h2>
+        <span className="text-xs text-muted-foreground">বিস্তারিত পারফর্মেন্স রিপোর্ট দেখতে ক্লিক করুন</span>
+      </div>
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+        {persons.map((p) => (
+          <Link
+            key={p.id}
+            to="/person/$name"
+            params={{ name: p.name }}
+            className="group rounded-lg border bg-background p-3 hover:bg-accent hover:border-primary/50 transition flex items-center gap-3"
+          >
+            <div className="size-10 rounded-full bg-primary/10 text-primary grid place-items-center group-hover:bg-primary group-hover:text-primary-foreground transition">
+              <User className="size-5" />
+            </div>
+            <div className="min-w-0">
+              <div className="text-sm font-medium truncate">{p.name}</div>
+              <div className="text-xs text-muted-foreground">View profile</div>
+            </div>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+}
