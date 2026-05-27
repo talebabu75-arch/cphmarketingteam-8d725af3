@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
   PieChart, Pie, Cell,
@@ -74,6 +74,9 @@ export function MonthlyAnalysis({
     return { name: p, yes, no, total, score };
   }).sort((a, b) => b.score - a.score);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between flex-wrap gap-2">
@@ -93,7 +96,7 @@ export function MonthlyAnalysis({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 rounded-xl border bg-card shadow-sm p-4">
           <h3 className="text-sm font-medium mb-3">Per-Person Status Count</h3>
-          <div className="h-72">
+          <div className="h-72">{mounted && (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
@@ -113,13 +116,14 @@ export function MonthlyAnalysis({
                 ))}
               </BarChart>
             </ResponsiveContainer>
+            )}
           </div>
         </div>
 
         <div className="rounded-xl border bg-card shadow-sm p-4">
           <h3 className="text-sm font-medium mb-3">Overall Distribution</h3>
           <div className="h-72">
-            {pieData.length === 0 ? (
+            {!mounted ? null : pieData.length === 0 ? (
               <div className="h-full flex items-center justify-center text-sm text-muted-foreground">
                 কোনো ডাটা নেই
               </div>

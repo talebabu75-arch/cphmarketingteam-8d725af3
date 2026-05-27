@@ -39,6 +39,8 @@ export function MonitoringTable() {
   const [entries, setEntries] = useState<Map<CellKey, Entry>>(new Map());
   const [loading, setLoading] = useState(true);
   const [manageOpen, setManageOpen] = useState(false);
+  const [personReportOpen, setPersonReportOpen] = useState(false);
+  const [selectedReportPersons, setSelectedReportPersons] = useState<string[]>([]);
   const { persons: personItems, locations: locationItems, refresh: refreshLists } = useDashboardLists();
   const PERSONS = useMemo(() => personItems.map((p) => p.name), [personItems]);
   const LOCATIONS = useMemo(() => locationItems.map((l) => l.name), [locationItems]);
@@ -124,7 +126,9 @@ export function MonitoringTable() {
     setYear(d.getFullYear()); setMonth(d.getMonth());
   }
 
-  function downloadPdf() {
+  function downloadPdf(selectedPersons?: string[]) {
+    const personsList = selectedPersons && selectedPersons.length > 0 ? selectedPersons : PERSONS;
+    const isFiltered = selectedPersons && selectedPersons.length > 0 && selectedPersons.length < PERSONS.length;
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a3" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const monthLabel = new Date(year, month, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
@@ -155,9 +159,9 @@ export function MonitoringTable() {
     doc.setFont("helvetica", "normal");
 
     const head1: any[] = [{ content: "Date", rowSpan: 2 }];
-    PERSONS.forEach((p) => head1.push({ content: p, colSpan: 4 }));
+    personsList.forEach((p) => head1.push({ content: p, colSpan: 4 }));
     const head2: any[] = [];
-    PERSONS.forEach(() => {
+    personsList.forEach(() => {
       head2.push("Location");
       SLOTS.forEach((s) => head2.push(s.label));
     });
@@ -167,7 +171,7 @@ export function MonitoringTable() {
       const row: any[] = [
         `${String(day).padStart(2, "0")} ${new Date(year, month, day).toLocaleString(undefined, { weekday: "short" })}`,
       ];
-      PERSONS.forEach((person) => {
+      personsList.forEach((person) => {
         const c = getCell(date, person);
         row.push(c.location ?? "");
         SLOTS.forEach((s) => row.push((c[s.key] as string) ?? ""));
@@ -234,17 +238,20 @@ export function MonitoringTable() {
       doc.setTextColor(30, 30, 30);
     });
 
-    doc.save(`monitoring-${year}-${String(month + 1).padStart(2, "0")}.pdf`);
+    const suffix = isFiltered ? `-${personsList.join("_")}` : "";
+    doc.save(`monitoring-${year}-${String(month + 1).padStart(2, "0")}${suffix}.pdf`);
   }
 
-  function downloadExcel() {
-    // Header rows
+  function downloadExcel(selectedPersons?: string[]) {
+    const personsList = selectedPersons && selectedPersons.length > 0 ? selectedPersons : PERSONS;
+    const isFiltered = selectedPersons && selectedPersons.length > 0 && selectedPersons.length < PERSONS.length;
+
     const header1: string[] = ["Date"];
-    PERSONS.forEach((p) => {
+    personsList.forEach((p) => {
       header1.push(p, "", "", "");
     });
     const header2: string[] = [""];
-    PERSONS.forEach(() => {
+    personsList.forEach(() => {
       header2.push("Location", ...SLOTS.map((s) => s.label));
     });
 
@@ -252,7 +259,7 @@ export function MonitoringTable() {
     for (let day = 1; day <= days; day++) {
       const date = fmtDate(year, month, day);
       const row: (string | number)[] = [date];
-      PERSONS.forEach((person) => {
+      personsList.forEach((person) => {
         const c = getCell(date, person);
         row.push(c.location ?? "");
         SLOTS.forEach((s) => row.push((c[s.key] as string) ?? ""));
@@ -261,16 +268,16 @@ export function MonitoringTable() {
     }
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    // Merge person name across 4 cols in header row 1
-    ws["!merges"] = PERSONS.map((_, i) => ({
+    ws["!merges"] = personsList.map((_, i) => ({
       s: { r: 0, c: 1 + i * 4 },
       e: { r: 0, c: 1 + i * 4 + 3 },
     }));
-    ws["!cols"] = [{ wch: 12 }, ...PERSONS.flatMap(() => [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }])];
+    ws["!cols"] = [{ wch: 12 }, ...personsList.flatMap(() => [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }])];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, monthName);
-    XLSX.writeFile(wb, `monitoring-${year}-${String(month + 1).padStart(2, "0")}.xlsx`);
+    const suffix = isFiltered ? `-${personsList.join("_")}` : "";
+    XLSX.writeFile(wb, `monitoring-${year}-${String(month + 1).padStart(2, "0")}${suffix}.xlsx`);
   }
 
   async function handleImportExcel(file: File) {
@@ -405,11 +412,14 @@ export function MonitoringTable() {
           <button onClick={prevMonth} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">←</button>
           <div className="rounded-md border bg-card px-4 py-1.5 text-sm font-medium min-w-[180px] text-center">{monthName}</div>
           <button onClick={nextMonth} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">→</button>
-          <button onClick={downloadPdf} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
+          <button onClick={() => downloadPdf()} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
             Download PDF
           </button>
-          <button onClick={downloadExcel} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+          <button onClick={() => downloadExcel()} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
             Download Excel
+          </button>
+          <button onClick={() => setPersonReportOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+            Person Report
           </button>
           <label className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition cursor-pointer">
             Import Excel
@@ -532,6 +542,70 @@ export function MonitoringTable() {
         locations={locationItems}
         onChanged={refreshLists}
       />
+
+      {personReportOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => setPersonReportOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border bg-card p-5 shadow-lg space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-lg font-semibold">Person Report</h3>
+              <p className="text-sm text-muted-foreground">যাদের রিপোর্ট দরকার, তাদের সিলেক্ট করুন</p>
+            </div>
+            <div className="space-y-2 max-h-72 overflow-auto">
+              {PERSONS.map((p) => {
+                const checked = selectedReportPersons.includes(p);
+                return (
+                  <label key={p} className="flex items-center gap-2 cursor-pointer rounded-md border px-3 py-2 hover:bg-accent">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setSelectedReportPersons((prev) =>
+                          e.target.checked ? [...prev, p] : prev.filter((x) => x !== p),
+                        );
+                      }}
+                    />
+                    <span className="text-sm">{p}</span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
+              <button
+                onClick={() => setSelectedReportPersons([])}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+              >
+                Clear
+              </button>
+              <button
+                onClick={() => setPersonReportOpen(false)}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={selectedReportPersons.length === 0}
+                onClick={() => { downloadExcel(selectedReportPersons); }}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
+              >
+                Excel
+              </button>
+              <button
+                disabled={selectedReportPersons.length === 0}
+                onClick={() => { downloadPdf(selectedReportPersons); }}
+                className="rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 disabled:opacity-50"
+              >
+                PDF
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
