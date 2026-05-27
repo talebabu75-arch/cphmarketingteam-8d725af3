@@ -543,7 +543,10 @@ export function MonitoringTable() {
 
 
       <MonthlyAnalysis
-        entries={Array.from(entries.values())}
+        entries={Array.from({ length: days }, (_, i) => i + 1).flatMap((day) => {
+          const date = fmtDate(year, month, day);
+          return PERSONS.map((person) => getCell(date, person));
+        })}
         persons={PERSONS}
         monthName={monthName}
       />
