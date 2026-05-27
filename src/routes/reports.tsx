@@ -10,7 +10,10 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
   CartesianGrid, LineChart, Line, Cell,
 } from "recharts";
-import { Trophy, TrendingDown, Grid3x3, Target } from "lucide-react";
+import { Trophy, TrendingDown, Grid3x3, Target, Sparkles, Loader2 } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { generateSmartSuggestions } from "@/lib/insights.functions";
+import { toast } from "sonner";
 
 type Entry = {
   entry_date: string;
@@ -128,13 +131,14 @@ function ReportsPage() {
 
       <div className="max-w-[1600px] mx-auto px-6 py-6">
         <Tabs defaultValue="person" className="space-y-4">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-6 w-full sm:w-auto">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-7 w-full sm:w-auto">
             <TabsTrigger value="person">Person-wise</TabsTrigger>
             <TabsTrigger value="daily">Daily</TabsTrigger>
             <TabsTrigger value="weekly">Weekly</TabsTrigger>
             <TabsTrigger value="monthly">Monthly</TabsTrigger>
             <TabsTrigger value="analytics">Analytics</TabsTrigger>
             <TabsTrigger value="kpi">KPI</TabsTrigger>
+            <TabsTrigger value="ai"><Sparkles className="size-3.5 mr-1" />AI</TabsTrigger>
           </TabsList>
 
           <TabsContent value="person">
@@ -154,6 +158,9 @@ function ReportsPage() {
           </TabsContent>
           <TabsContent value="kpi">
             <KpiTab entries={entries} persons={persons.map((p) => p.name)} year={year} />
+          </TabsContent>
+          <TabsContent value="ai">
+            <SmartSuggestionsTab entries={entries} persons={persons.map((p) => p.name)} year={year} />
           </TabsContent>
         </Tabs>
       </div>
