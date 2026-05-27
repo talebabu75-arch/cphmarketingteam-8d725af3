@@ -6,6 +6,7 @@ import { ManageListsDialog } from "@/components/ManageListsDialog";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 type Entry = {
   id?: string;
@@ -175,6 +176,135 @@ export function MonitoringTable() {
     doc.save(`monitoring-${year}-${String(month + 1).padStart(2, "0")}.pdf`);
   }
 
+  function downloadExcel() {
+    // Header rows
+    const header1: string[] = ["Date"];
+    PERSONS.forEach((p) => {
+      header1.push(p, "", "", "");
+    });
+    const header2: string[] = [""];
+    PERSONS.forEach(() => {
+      header2.push("Location", ...SLOTS.map((s) => s.label));
+    });
+
+    const rows: (string | number)[][] = [header1, header2];
+    for (let day = 1; day <= days; day++) {
+      const date = fmtDate(year, month, day);
+      const row: (string | number)[] = [date];
+      PERSONS.forEach((person) => {
+        const c = getCell(date, person);
+        row.push(c.location ?? "");
+        SLOTS.forEach((s) => row.push((c[s.key] as string) ?? ""));
+      });
+      rows.push(row);
+    }
+
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    // Merge person name across 4 cols in header row 1
+    ws["!merges"] = PERSONS.map((_, i) => ({
+      s: { r: 0, c: 1 + i * 4 },
+      e: { r: 0, c: 1 + i * 4 + 3 },
+    }));
+    ws["!cols"] = [{ wch: 12 }, ...PERSONS.flatMap(() => [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }])];
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, monthName);
+    XLSX.writeFile(wb, `monitoring-${year}-${String(month + 1).padStart(2, "0")}.xlsx`);
+  }
+
+  async function handleImportExcel(file: File) {
+    try {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const aoa = XLSX.utils.sheet_to_json<any[]>(ws, { header: 1, defval: "" });
+      if (aoa.length < 3) {
+        toast.error("Excel ফাইলে কোনো ডাটা নেই");
+        return;
+      }
+      // Row 0: Date | Person1 (merged 4) | Person2 ... → after unmerge, name appears only in first col
+      const row0 = aoa[0] as string[];
+      const row1 = aoa[1] as string[];
+
+      // Determine person columns. Each person occupies 4 cols. Start at col 1.
+      const personNames: string[] = [];
+      for (let c = 1; c + 3 < row0.length || c < row0.length; c += 4) {
+        const name = String(row0[c] ?? "").trim();
+        if (!name) break;
+        personNames.push(name);
+        if (c + 4 >= row0.length) break;
+      }
+      if (personNames.length === 0) {
+        toast.error("Person column খুঁজে পাওয়া যায়নি");
+        return;
+      }
+
+      const payload: any[] = [];
+      const statusSet = new Set<string>(STATUSES);
+
+      for (let r = 2; r < aoa.length; r++) {
+        const row = aoa[r] as any[];
+        const dateRaw = row[0];
+        if (!dateRaw) continue;
+        let entry_date = "";
+        if (typeof dateRaw === "number") {
+          // Excel serial date
+          const d = XLSX.SSF.parse_date_code(dateRaw);
+          if (!d) continue;
+          entry_date = `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
+        } else {
+          const s = String(dateRaw).trim();
+          const m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+          if (!m) continue;
+          entry_date = `${m[1]}-${m[2]}-${m[3]}`;
+        }
+
+        personNames.forEach((person, pi) => {
+          const base = 1 + pi * 4;
+          const location = String(row[base] ?? "").trim() || null;
+          const norm = (v: any) => {
+            const s = String(v ?? "").trim();
+            if (!s) return null;
+            return statusSet.has(s) ? s : null;
+          };
+          const slot_10 = norm(row[base + 1]);
+          const slot_11 = norm(row[base + 2]);
+          const slot_14 = norm(row[base + 3]);
+          if (!location && !slot_10 && !slot_11 && !slot_14) return;
+          payload.push({ entry_date, person, location, slot_10, slot_11, slot_14 });
+        });
+      }
+
+      if (payload.length === 0) {
+        toast.error("Import করার মতো কোনো রো পাওয়া যায়নি");
+        return;
+      }
+
+      toast.message(`${payload.length}টি রো import হচ্ছে…`);
+      const { error } = await supabase
+        .from("monitoring_entries")
+        .upsert(payload, { onConflict: "entry_date,person" });
+      if (error) {
+        toast.error(`Import failed: ${error.message}`);
+        return;
+      }
+      toast.success(`${payload.length}টি রো সফলভাবে import হয়েছে`);
+      // Refresh current month view
+      const { data } = await supabase
+        .from("monitoring_entries")
+        .select("*")
+        .gte("entry_date", monthStart)
+        .lte("entry_date", monthEnd);
+      const map = new Map<CellKey, Entry>();
+      (data ?? []).forEach((row: any) => map.set(`${row.entry_date}|${row.person}`, row as Entry));
+      setEntries(map);
+    } catch (e: any) {
+      toast.error(`Parse error: ${e.message ?? e}`);
+    }
+  }
+
+
+
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -185,9 +315,26 @@ export function MonitoringTable() {
           <button onClick={downloadPdf} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
             Download PDF
           </button>
+          <button onClick={downloadExcel} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+            Download Excel
+          </button>
+          <label className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition cursor-pointer">
+            Import Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImportExcel(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
           <button onClick={() => setManageOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
             Manage Lists
           </button>
+
         </div>
         <Legend />
       </div>
