@@ -94,7 +94,7 @@ function LoginPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">ভেরিফিকেশন</label>
+            <label className="text-sm font-medium">Verification</label>
             <div className="mt-1 flex items-center gap-2">
               <div className="px-3 py-2 rounded-md border bg-muted text-sm font-mono select-none tracking-wider">
                 {captcha.a} + {captcha.b} = ?
