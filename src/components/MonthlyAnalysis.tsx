@@ -117,6 +117,7 @@ export function MonthlyAnalysis({
               </BarChart>
             </ResponsiveContainer>
             )}
+          </div>
         </div>
 
         <div className="rounded-xl border bg-card shadow-sm p-4">
