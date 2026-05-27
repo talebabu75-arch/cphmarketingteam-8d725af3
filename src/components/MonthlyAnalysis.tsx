@@ -160,7 +160,7 @@ export function MonthlyAnalysis({
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b">
           <h3 className="text-sm font-medium">Performance Ranking</h3>
-          <p className="text-xs text-muted-foreground">Score = Yes / (Yes + No) × 100</p>
+          <p className="text-xs text-muted-foreground">Score = Yes / (Yes + No + L.off) × 100</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
