@@ -1095,3 +1095,157 @@ function KpiBar({ label, value, sub, pct, color }: { label: string; value: strin
     </div>
   );
 }
+
+/* ---------- AI Smart Suggestions ---------- */
+function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; persons: string[]; year: number }) {
+  const now = new Date();
+  const defaultMonth = now.getFullYear() === year ? now.getMonth() : 11;
+  const [month, setMonth] = useState<number>(defaultMonth);
+  const [loading, setLoading] = useState(false);
+  const [suggestions, setSuggestions] = useState<string>("");
+  const runFn = useServerFn(generateSmartSuggestions);
+
+  const computeStats = (m: number) => {
+    const slotKeys = SLOTS.map((s) => s.key as "slot_10" | "slot_11" | "slot_14");
+    const inMonth = entries.filter((e) => {
+      const d = new Date(e.entry_date);
+      return d.getFullYear() === year && d.getMonth() === m;
+    });
+    const workingDaySet = new Set<string>();
+    inMonth.forEach((e) => {
+      if (new Date(e.entry_date).getDay() !== 5) workingDaySet.add(e.entry_date);
+    });
+    const workingDays = workingDaySet.size || 1;
+    const perPerson = persons.map((p) => {
+      const my = inMonth.filter((e) => e.person === p);
+      let visits = 0, presentDays = 0;
+      const locs = new Set<string>();
+      my.forEach((e) => {
+        const vals = slotKeys.map((k) => e[k]);
+        let dayYes = 0;
+        vals.forEach((v) => { if (v === "Yes") { visits++; dayYes++; } });
+        if (dayYes > 0) presentDays++;
+        if (e.location && dayYes > 0) locs.add(e.location);
+      });
+      const attendance = Math.round((presentDays / workingDays) * 100);
+      const visitRate = Math.round((visits / (workingDays * SLOTS.length)) * 100);
+      const coverageScore = Math.min(100, locs.size * 10);
+      const performance = Math.round(attendance * 0.4 + visitRate * 0.4 + coverageScore * 0.2);
+      return { name: p, visits, attendance, coverage: locs.size, performance };
+    });
+    const totalVisits = perPerson.reduce((a, r) => a + r.visits, 0);
+    const avgAttendance = perPerson.length ? Math.round(perPerson.reduce((a, r) => a + r.attendance, 0) / perPerson.length) : 0;
+    return { perPerson, totalVisits, avgAttendance };
+  };
+
+  const handleGenerate = async () => {
+    const prevMonthDate = new Date(year, month - 1, 1);
+    const prevMonth = prevMonthDate.getMonth();
+    const prevYear = prevMonthDate.getFullYear();
+    if (prevYear !== year) {
+      toast.error("পূর্ববর্তী মাসের ডেটা পাওয়া যাচ্ছে না (অন্য বছর)। জানুয়ারি বাদে অন্য মাস বেছে নিন।");
+      return;
+    }
+    const cur = computeStats(month);
+    const prev = computeStats(prevMonth);
+    const personMap = new Map(prev.perPerson.map((p) => [p.name, p]));
+    const personsPayload = cur.perPerson.map((p) => {
+      const pp = personMap.get(p.name);
+      return {
+        name: p.name,
+        currentVisits: p.visits,
+        previousVisits: pp?.visits ?? 0,
+        currentAttendance: p.attendance,
+        previousAttendance: pp?.attendance ?? 0,
+        currentCoverage: p.coverage,
+        performance: p.performance,
+      };
+    });
+
+    setLoading(true);
+    setSuggestions("");
+    try {
+      const res = await runFn({
+        data: {
+          monthLabel: `${MONTH_NAMES[month]} ${year}`,
+          previousMonthLabel: `${MONTH_NAMES[prevMonth]} ${year}`,
+          teamTotals: {
+            totalVisits: cur.totalVisits,
+            previousTotalVisits: prev.totalVisits,
+            avgAttendance: cur.avgAttendance,
+            previousAvgAttendance: prev.avgAttendance,
+          },
+          persons: personsPayload,
+        },
+      });
+      setSuggestions(res.suggestions);
+    } catch (e: any) {
+      const msg = String(e?.message ?? e);
+      if (msg.includes("429")) toast.error("Rate limit — একটু পর আবার চেষ্টা করুন।");
+      else if (msg.includes("402")) toast.error("AI credit শেষ — Workspace settings থেকে credit যোগ করুন।");
+      else toast.error("AI suggestion তৈরি করা যায়নি: " + msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2">
+            <Sparkles className="size-5 text-primary" /> AI Smart Suggestions
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            AI পারফরম্যান্স ডেটা বিশ্লেষণ করে কাজে লাগার ইনসাইট দিবে — যেমন "Taiyab এই মাসে ১৮% কম visit করেছে"।
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={month}
+            onChange={(e) => setMonth(Number(e.target.value))}
+            className="rounded-md border bg-card px-3 py-1.5 text-sm"
+          >
+            {MONTH_NAMES.map((m, i) => <option key={m} value={i}>{m} {year}</option>)}
+          </select>
+          <button
+            onClick={handleGenerate}
+            disabled={loading || persons.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
+            {loading ? "তৈরি হচ্ছে…" : "Suggestions তৈরি করুন"}
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-card shadow-sm p-5 min-h-[200px]">
+        {loading && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="size-4 animate-spin" /> AI ডেটা বিশ্লেষণ করছে…
+          </div>
+        )}
+        {!loading && !suggestions && (
+          <div className="text-sm text-muted-foreground">
+            উপরের "Suggestions তৈরি করুন" বাটনে ক্লিক করে {MONTH_NAMES[month]} {year} মাসের জন্য AI ইনসাইট তৈরি করুন।
+            চলতি মাসের ডেটা পূর্ববর্তী মাসের সাথে তুলনা করা হবে।
+          </div>
+        )}
+        {!loading && suggestions && (
+          <ul className="space-y-2 text-sm leading-relaxed">
+            {suggestions
+              .split("\n")
+              .map((l) => l.replace(/^[-*•]\s*/, "").trim())
+              .filter(Boolean)
+              .map((line, i) => (
+                <li key={i} className="flex gap-2">
+                  <span className="text-primary mt-0.5">•</span>
+                  <span>{line}</span>
+                </li>
+              ))}
+          </ul>
+        )}
+      </div>
+    </div>
+  );
+}
