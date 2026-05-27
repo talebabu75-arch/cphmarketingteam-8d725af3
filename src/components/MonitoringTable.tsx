@@ -813,6 +813,98 @@ export function MonitoringTable() {
           </div>
         </div>
       )}
+
+      {rangeOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          onClick={() => !rangeBusy && setRangeOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl border bg-card p-5 shadow-lg space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div>
+              <h3 className="text-lg font-semibold">Date Range Report</h3>
+              <p className="text-sm text-muted-foreground">একটা ডেট থেকে আরেকটা ডেট পর্যন্ত রিপোর্ট</p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="space-y-1">
+                <span className="text-xs text-muted-foreground">From</span>
+                <input
+                  type="date"
+                  value={rangeFrom}
+                  onChange={(e) => setRangeFrom(e.target.value)}
+                  className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                />
+              </label>
+              <label className="space-y-1">
+                <span className="text-xs text-muted-foreground">To</span>
+                <input
+                  type="date"
+                  value={rangeTo}
+                  onChange={(e) => setRangeTo(e.target.value)}
+                  className="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                />
+              </label>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Persons</span>
+                <button
+                  type="button"
+                  onClick={() => setRangePersons(rangePersons.length === PERSONS.length ? [] : [...PERSONS])}
+                  className="text-xs text-primary hover:underline"
+                >
+                  {rangePersons.length === PERSONS.length ? "Clear all" : "Select all"}
+                </button>
+              </div>
+              <p className="text-xs text-muted-foreground mb-2">কাউকে না সিলেক্ট করলে সবার রিপোর্ট আসবে</p>
+              <div className="space-y-2 max-h-56 overflow-auto">
+                {PERSONS.map((p) => {
+                  const checked = rangePersons.includes(p);
+                  return (
+                    <label key={p} className="flex items-center gap-2 cursor-pointer rounded-md border px-3 py-2 hover:bg-accent">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setRangePersons((prev) =>
+                            e.target.checked ? [...prev, p] : prev.filter((x) => x !== p),
+                          );
+                        }}
+                      />
+                      <span className="text-sm">{p}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t">
+              <button
+                disabled={rangeBusy}
+                onClick={() => setRangeOpen(false)}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={rangeBusy}
+                onClick={() => downloadRangeExcel(rangeFrom, rangeTo, rangePersons)}
+                className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-50"
+              >
+                {rangeBusy ? "Loading…" : "Excel"}
+              </button>
+              <button
+                disabled={rangeBusy}
+                onClick={() => downloadRangePdf(rangeFrom, rangeTo, rangePersons)}
+                className="rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 disabled:opacity-50"
+              >
+                {rangeBusy ? "Loading…" : "PDF"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
