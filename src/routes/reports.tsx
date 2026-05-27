@@ -1355,3 +1355,213 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
     </div>
   );
 }
+
+/* ---------- Combined-PDF builders (mirror per-tab handlePDF logic) ---------- */
+function buildPersonReport(entries: Entry[], persons: string[], year: number): Omit<PdfReportOptions, "filename"> {
+  const rows = persons.map((p) => {
+    const b: Record<string, number> = {};
+    STATUSES.forEach((s) => (b[s] = 0));
+    let extra = 0, days = 0;
+    entries.filter((e) => e.person === p).forEach((e) => {
+      days += 1;
+      const r = countEntry(e, b);
+      extra += r.extraDoff;
+    });
+    return { name: p, ...b, extra, days, score: score(b, extra) };
+  }).sort((a, b) => b.score - a.score);
+
+  const topPerformer = rows[0]?.name ?? "—";
+  const avgScore = rows.length ? Math.round(rows.reduce((a, r) => a + r.score, 0) / rows.length) : 0;
+  const totalVisits = rows.reduce((a, r) => a + ((r as any)["Yes"] ?? 0), 0);
+  return {
+    title: "Person-wise Annual Report",
+    subtitle: `Performance summary for the year ${year}`,
+    summary: [
+      { label: "Total Staff", value: rows.length },
+      { label: "Top Performer", value: topPerformer },
+      { label: "Avg Score", value: `${avgScore}%` },
+      { label: "Total Visits", value: totalVisits },
+    ],
+    sections: [{
+      title: "Performance Ranking",
+      head: ["#", "Name", ...STATUSES, "Extra D.off", "Days", "Score %"],
+      body: rows.map((r, i) => [i + 1, r.name, ...STATUSES.map((s) => (r as any)[s] || "-"), r.extra || "-", r.days, `${r.score}%`]),
+    }],
+  };
+}
+
+function buildDailyReport(entries: Entry[], persons: string[], date: string): Omit<PdfReportOptions, "filename"> {
+  const dayEntries = entries.filter((e) => e.entry_date === date);
+  let present = 0, leave = 0, visits = 0;
+  dayEntries.forEach((e) => {
+    const vals = SLOTS.map((s) => e[s.key as "slot_10" | "slot_11" | "slot_14"]).filter((v): v is string => !!v);
+    if (vals.includes("Yes")) present += 1;
+    else if (vals.includes("L.off") || vals.every((v) => v === "Off day")) leave += 1;
+    vals.forEach((v) => { if (v === "Yes") visits += 1; });
+  });
+  return {
+    title: "Daily Activity Report",
+    subtitle: `Date: ${new Date(date).toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`,
+    summary: [
+      { label: "Total Staff", value: persons.length },
+      { label: "Present", value: present },
+      { label: "On Leave", value: leave },
+      { label: "Total Visits", value: visits },
+    ],
+    sections: [{
+      title: "Daily Status by Person",
+      head: ["Person", "Location", ...SLOTS.map((s) => s.label)],
+      body: persons.map((p) => {
+        const e = dayEntries.find((x) => x.person === p);
+        return [p, e?.location ?? "-", ...SLOTS.map((s) => e?.[s.key as "slot_10" | "slot_11" | "slot_14"] ?? "-")];
+      }),
+    }],
+  };
+}
+
+function buildWeeklyReport(entries: Entry[], persons: string[], year: number, weekOffset: number): Omit<PdfReportOptions, "filename"> {
+  const now = new Date();
+  const day = now.getDay();
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - ((day + 6) % 7) + weekOffset * 7);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  const start = todayISO(monday);
+  const end = todayISO(sunday);
+  const label = `${monday.toLocaleDateString()} – ${sunday.toLocaleDateString()}`;
+
+  const inRange = entries.filter((e) => e.entry_date >= start && e.entry_date <= end);
+  const rows = persons.map((p) => {
+    const b: Record<string, number> = {};
+    STATUSES.forEach((s) => (b[s] = 0));
+    let extra = 0, days = 0;
+    inRange.filter((e) => e.person === p).forEach((e) => {
+      days += 1;
+      const r = countEntry(e, b);
+      extra += r.extraDoff;
+    });
+    return { name: p, ...b, extra, days, score: score(b, extra) };
+  }).sort((a, b) => b.score - a.score);
+
+  const topPerformer = rows[0]?.name ?? "—";
+  const avgScore = rows.length ? Math.round(rows.reduce((a, r) => a + r.score, 0) / rows.length) : 0;
+  const totalVisits = rows.reduce((a, r) => a + ((r as any)["Yes"] ?? 0), 0);
+  return {
+    title: "Weekly Performance Report",
+    subtitle: `${label} • Year ${year}`,
+    summary: [
+      { label: "Top Performer", value: topPerformer },
+      { label: "Avg Score", value: `${avgScore}%` },
+      { label: "Total Visits", value: totalVisits },
+      { label: "Active Days", value: rows.reduce((a, r) => a + r.days, 0) },
+    ],
+    sections: [{
+      title: "Weekly Performance Ranking",
+      head: ["Name", ...STATUSES, "Extra D.off", "Days", "Score %"],
+      body: rows.map((r) => [r.name, ...STATUSES.map((s) => (r as any)[s] || "-"), r.extra || "-", r.days, `${r.score}%`]),
+    }],
+  };
+}
+
+function buildMonthlyReport(entries: Entry[], persons: string[], year: number): Omit<PdfReportOptions, "filename"> {
+  const data = MONTH_NAMES.map((mn, mi) => {
+    const monthEntries = entries.filter((e) => new Date(e.entry_date).getMonth() === mi);
+    const row: any = { month: mn };
+    persons.forEach((p) => {
+      const b: Record<string, number> = {};
+      STATUSES.forEach((s) => (b[s] = 0));
+      let extra = 0;
+      monthEntries.filter((e) => e.person === p).forEach((e) => {
+        const r = countEntry(e, b);
+        extra += r.extraDoff;
+      });
+      row[p] = score(b, extra);
+    });
+    let totalYes = 0;
+    monthEntries.forEach((e) => {
+      SLOTS.forEach((s) => {
+        if (e[s.key as "slot_10" | "slot_11" | "slot_14"] === "Yes") totalYes += 1;
+      });
+    });
+    row.__visits = totalYes;
+    return row;
+  });
+
+  const totalVisits = data.reduce((a, d) => a + d.__visits, 0);
+  const bestMonth = data.reduce((a, d) => (d.__visits > a.__visits ? d : a), data[0]);
+  const personAvg = persons.map((p) => {
+    const scores = data.map((d) => d[p]).filter((v) => v > 0);
+    const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+    return { p, avg };
+  });
+  const topPerson = personAvg.sort((a, b) => b.avg - a.avg)[0];
+
+  return {
+    title: "Monthly Comparison Report",
+    subtitle: `12-month performance breakdown for ${year}`,
+    summary: [
+      { label: "Total Visits", value: totalVisits },
+      { label: "Best Month", value: bestMonth?.month ?? "—" },
+      { label: "Top Performer", value: topPerson?.p ?? "—" },
+      { label: "Avg Score", value: `${topPerson?.avg ?? 0}%` },
+    ],
+    sections: [{
+      title: "Monthly Performance Score (%)",
+      head: ["Month", ...persons, "Visits"],
+      body: data.map((d) => [d.month, ...persons.map((p) => (d[p] ? `${d[p]}%` : "-")), d.__visits]),
+    }],
+  };
+}
+
+function buildKpiReport(entries: Entry[], persons: string[], year: number, month: number | "all"): Omit<PdfReportOptions, "filename"> {
+  const scoped = month === "all" ? entries : entries.filter((e) => new Date(e.entry_date).getMonth() === month);
+  const wdSet = new Set<string>();
+  scoped.forEach((e) => {
+    const dow = new Date(e.entry_date).getDay();
+    if (dow !== 5) wdSet.add(e.entry_date);
+  });
+  const workingDays = wdSet.size || 1;
+
+  const rows = persons.map((p) => {
+    const my = scoped.filter((e) => e.person === p);
+    let visits = 0, presentDays = 0;
+    const locations = new Set<string>();
+    my.forEach((e) => {
+      const vals = SLOTS.map((s) => e[s.key as "slot_10" | "slot_11" | "slot_14"]);
+      let dayYes = 0;
+      vals.forEach((v) => { if (v === "Yes") { visits += 1; dayYes += 1; } });
+      if (dayYes > 0) presentDays += 1;
+      if (e.location && dayYes > 0) locations.add(e.location);
+    });
+    const attendance = Math.round((presentDays / workingDays) * 100);
+    const visitRate = Math.round((visits / (workingDays * SLOTS.length)) * 100);
+    const coverageScore = Math.min(100, locations.size * 10);
+    const performance = Math.round(attendance * 0.4 + visitRate * 0.4 + coverageScore * 0.2);
+    return { name: p, visits, presentDays, attendance, visitRate, coverage: locations.size, performance };
+  }).sort((a, b) => b.performance - a.performance);
+
+  const totalVisits = rows.reduce((a, r) => a + r.visits, 0);
+  const avgAttendance = rows.length ? Math.round(rows.reduce((a, r) => a + r.attendance, 0) / rows.length) : 0;
+  const avgPerformance = rows.length ? Math.round(rows.reduce((a, r) => a + r.performance, 0) / rows.length) : 0;
+  const totalCoverage = new Set<string>();
+  scoped.forEach((e) => { if (e.location) totalCoverage.add(e.location); });
+
+  return {
+    title: "KPI Report — Staff Performance",
+    subtitle: `${month === "all" ? `Full year ${year}` : `${MONTH_NAMES[month as number]} ${year}`} • ${workingDays} working days`,
+    summary: [
+      { label: "Total Visits", value: totalVisits },
+      { label: "Avg Attendance", value: `${avgAttendance}%` },
+      { label: "Avg Performance", value: `${avgPerformance}%` },
+      { label: "Locations Covered", value: totalCoverage.size },
+    ],
+    sections: [{
+      title: "KPI Scorecard",
+      head: ["#", "Staff", "Visits", "Present", "Attendance", "Visit Rate", "Coverage", "Performance"],
+      body: rows.map((r, i) => [
+        i + 1, r.name, r.visits, `${r.presentDays}/${workingDays}`,
+        `${r.attendance}%`, `${r.visitRate}%`, `${r.coverage} loc`, `${r.performance}%`,
+      ]),
+    }],
+  };
+}
