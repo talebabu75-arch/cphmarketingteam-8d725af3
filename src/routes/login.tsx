@@ -122,7 +122,7 @@ function LoginPage() {
               onChange={(e) => setHumanChecked(e.target.checked)}
               className="size-4 rounded border-input cursor-pointer accent-primary"
             />
-            <span className="text-sm">আমি রোবট নই (I'm not a robot)</span>
+            <span className="text-sm">I'm not a robot</span>
           </label>
 
           <button
