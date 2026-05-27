@@ -4,13 +4,14 @@ import { flushQueue, queueCount, subscribeQueue } from "@/lib/offline-queue";
 import { toast } from "sonner";
 
 export function OfflineIndicator() {
-  const [online, setOnline] = useState(
-    typeof navigator === "undefined" ? true : navigator.onLine,
-  );
+  const [mounted, setMounted] = useState(false);
+  const [online, setOnline] = useState(true);
   const [pending, setPending] = useState(0);
   const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
+    setMounted(true);
+    setOnline(typeof navigator === "undefined" ? true : navigator.onLine);
     setPending(queueCount());
     const unsub = subscribeQueue(() => setPending(queueCount()));
     const on = () => setOnline(true);
@@ -42,7 +43,8 @@ export function OfflineIndicator() {
     }
   };
 
-  // Hide when fully online & nothing pending
+  // Hide during SSR/before mount, and when fully online & nothing pending
+  if (!mounted) return null;
   if (online && pending === 0 && !syncing) return null;
 
   const cls = !online
