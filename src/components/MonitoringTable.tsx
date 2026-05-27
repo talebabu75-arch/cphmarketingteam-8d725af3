@@ -240,14 +240,16 @@ export function MonitoringTable() {
     doc.save(`monitoring-${year}-${String(month + 1).padStart(2, "0")}${suffix}.pdf`);
   }
 
-  function downloadExcel() {
-    // Header rows
+  function downloadExcel(selectedPersons?: string[]) {
+    const personsList = selectedPersons && selectedPersons.length > 0 ? selectedPersons : PERSONS;
+    const isFiltered = selectedPersons && selectedPersons.length > 0 && selectedPersons.length < PERSONS.length;
+
     const header1: string[] = ["Date"];
-    PERSONS.forEach((p) => {
+    personsList.forEach((p) => {
       header1.push(p, "", "", "");
     });
     const header2: string[] = [""];
-    PERSONS.forEach(() => {
+    personsList.forEach(() => {
       header2.push("Location", ...SLOTS.map((s) => s.label));
     });
 
@@ -255,7 +257,7 @@ export function MonitoringTable() {
     for (let day = 1; day <= days; day++) {
       const date = fmtDate(year, month, day);
       const row: (string | number)[] = [date];
-      PERSONS.forEach((person) => {
+      personsList.forEach((person) => {
         const c = getCell(date, person);
         row.push(c.location ?? "");
         SLOTS.forEach((s) => row.push((c[s.key] as string) ?? ""));
@@ -264,16 +266,16 @@ export function MonitoringTable() {
     }
 
     const ws = XLSX.utils.aoa_to_sheet(rows);
-    // Merge person name across 4 cols in header row 1
-    ws["!merges"] = PERSONS.map((_, i) => ({
+    ws["!merges"] = personsList.map((_, i) => ({
       s: { r: 0, c: 1 + i * 4 },
       e: { r: 0, c: 1 + i * 4 + 3 },
     }));
-    ws["!cols"] = [{ wch: 12 }, ...PERSONS.flatMap(() => [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }])];
+    ws["!cols"] = [{ wch: 12 }, ...personsList.flatMap(() => [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }])];
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, monthName);
-    XLSX.writeFile(wb, `monitoring-${year}-${String(month + 1).padStart(2, "0")}.xlsx`);
+    const suffix = isFiltered ? `-${personsList.join("_")}` : "";
+    XLSX.writeFile(wb, `monitoring-${year}-${String(month + 1).padStart(2, "0")}${suffix}.xlsx`);
   }
 
   async function handleImportExcel(file: File) {
