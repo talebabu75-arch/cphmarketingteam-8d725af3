@@ -2,6 +2,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MonitoringTable } from "@/components/MonitoringTable";
+import { LiveSummaryCards } from "@/components/LiveSummaryCards";
 import { useDashboardLists } from "@/lib/use-lists";
 import { LogOut, BarChart3, User } from "lucide-react";
 
@@ -67,6 +68,7 @@ function Index() {
         </div>
       </header>
       <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+        <LiveSummaryCards />
         <PersonProfiles />
         <MonitoringTable />
       </div>
