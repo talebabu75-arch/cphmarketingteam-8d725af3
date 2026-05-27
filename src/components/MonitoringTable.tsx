@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import * as XLSX from "xlsx";
+import { parseMonitoringPdf } from "@/lib/pdf-import";
 
 type Entry = {
   id?: string;
@@ -303,6 +304,38 @@ export function MonitoringTable() {
     }
   }
 
+  async function handleImportPdf(file: File) {
+    try {
+      toast.message("PDF পড়া হচ্ছে…");
+      const payload = await parseMonitoringPdf(file, PERSONS);
+      if (payload.length === 0) {
+        toast.error("PDF থেকে কোনো রো পাওয়া যায়নি");
+        return;
+      }
+      toast.message(`${payload.length}টি রো import হচ্ছে…`);
+      const { error } = await supabase
+        .from("monitoring_entries")
+        .upsert(payload, { onConflict: "entry_date,person" });
+      if (error) {
+        toast.error(`Import failed: ${error.message}`);
+        return;
+      }
+      toast.success(`${payload.length}টি রো সফলভাবে import হয়েছে`);
+      const { data } = await supabase
+        .from("monitoring_entries")
+        .select("*")
+        .gte("entry_date", monthStart)
+        .lte("entry_date", monthEnd);
+      const map = new Map<CellKey, Entry>();
+      (data ?? []).forEach((row: any) => map.set(`${row.entry_date}|${row.person}`, row as Entry));
+      setEntries(map);
+    } catch (e: any) {
+      toast.error(`PDF parse error: ${e.message ?? e}`);
+    }
+  }
+
+
+
 
 
   return (
@@ -327,6 +360,19 @@ export function MonitoringTable() {
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) handleImportExcel(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <label className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition cursor-pointer">
+            Import PDF
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImportPdf(f);
                 e.target.value = "";
               }}
             />
