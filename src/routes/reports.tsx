@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { SLOTS, STATUSES, statusClass } from "@/lib/dashboard-config";
 import { useDashboardLists } from "@/lib/use-lists";
 import { ArrowLeft, FileText, Download, FileDown } from "lucide-react";
-import { generateReportPDF } from "@/lib/pdf-report";
+import { generateReportPDF, generateCombinedReportPDF, type PdfReportOptions } from "@/lib/pdf-report";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
