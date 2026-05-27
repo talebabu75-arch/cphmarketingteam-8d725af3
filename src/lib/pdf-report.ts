@@ -108,7 +108,6 @@ export function generateReportPDF(opts: PdfReportOptions) {
       alternateRowStyles: { fillColor: [248, 250, 252] },
       theme: "grid",
     });
-    // @ts-expect-error lastAutoTable exists at runtime
     y = (doc as any).lastAutoTable.finalY + 24;
   });
 
