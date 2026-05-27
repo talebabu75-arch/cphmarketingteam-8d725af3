@@ -8,8 +8,9 @@ import { generateReportPDF } from "@/lib/pdf-report";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
-  CartesianGrid, LineChart, Line,
+  CartesianGrid, LineChart, Line, Cell,
 } from "recharts";
+import { Trophy, TrendingDown, Grid3x3 } from "lucide-react";
 
 type Entry = {
   entry_date: string;
