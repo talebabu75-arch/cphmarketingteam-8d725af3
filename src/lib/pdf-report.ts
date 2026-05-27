@@ -1,6 +1,6 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import companyLogo from "@/assets/company-logo.png";
+import companyLogo from "@/assets/company-banner.png";
 
 let _logoData: string | null = null;
 async function loadLogo(): Promise<string | null> {
