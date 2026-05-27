@@ -6,6 +6,7 @@ import { ManageListsDialog } from "@/components/ManageListsDialog";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import * as XLSX from "xlsx";
 
 type Entry = {
   id?: string;
