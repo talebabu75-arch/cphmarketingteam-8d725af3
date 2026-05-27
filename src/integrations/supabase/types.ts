@@ -14,7 +14,45 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      monitoring_entries: {
+        Row: {
+          created_at: string
+          entry_date: string
+          id: string
+          location: string | null
+          person: string
+          slot_10: string | null
+          slot_11: string | null
+          slot_14: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          entry_date: string
+          id?: string
+          location?: string | null
+          person: string
+          slot_10?: string | null
+          slot_11?: string | null
+          slot_14?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          entry_date?: string
+          id?: string
+          location?: string | null
+          person?: string
+          slot_10?: string | null
+          slot_11?: string | null
+          slot_14?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
