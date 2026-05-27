@@ -165,8 +165,8 @@ export function MonitoringTable() {
                       {PERSONS.map((person) => {
                         const cell = getCell(date, person);
                         return (
-                          <>
-                            <td key={person + "loc"} className="border-t border-l px-1 py-1">
+                          <Fragment key={person}>
+                            <td className="border-t border-l px-1 py-1">
                               <SelectBox
                                 value={cell.location ?? ""}
                                 onChange={(v) => update(date, person, "location", v)}
@@ -175,14 +175,14 @@ export function MonitoringTable() {
                               />
                             </td>
                             {SLOTS.map((s) => (
-                              <td key={person + s.key} className="border-t px-1 py-1">
+                              <td key={s.key} className="border-t px-1 py-1">
                                 <StatusBox
                                   value={(cell[s.key] as string) ?? ""}
                                   onChange={(v) => update(date, person, s.key, v)}
                                 />
                               </td>
                             ))}
-                          </>
+                          </Fragment>
                         );
                       })}
                     </tr>
