@@ -1,23 +1,32 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import companyLogo from "@/assets/company-banner.png";
+import companyFooter from "@/assets/company-footer.png";
 
-let _logoData: string | null = null;
-async function loadLogo(): Promise<string | null> {
-  if (_logoData) return _logoData;
+async function urlToDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(companyLogo);
+    const res = await fetch(url);
     const blob = await res.blob();
-    _logoData = await new Promise<string>((resolve, reject) => {
+    return await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(r.result as string);
       r.onerror = reject;
       r.readAsDataURL(blob);
     });
-    return _logoData;
   } catch {
     return null;
   }
+}
+
+let _logoData: string | null = null;
+let _footerData: string | null = null;
+async function loadLogo() {
+  if (!_logoData) _logoData = await urlToDataUrl(companyLogo);
+  return _logoData;
+}
+async function loadFooter() {
+  if (!_footerData) _footerData = await urlToDataUrl(companyFooter);
+  return _footerData;
 }
 
 
@@ -46,6 +55,7 @@ export async function generateReportPDF(opts: PdfReportOptions) {
   const now = new Date();
   const dateStr = now.toLocaleString();
   const logo = await loadLogo();
+  const footerImg = await loadFooter();
 
   // ===== Header band (white with banner) =====
   doc.setFillColor(255, 255, 255);
@@ -154,15 +164,35 @@ export async function generateReportPDF(opts: PdfReportOptions) {
   doc.text(`Date: ${now.toLocaleDateString()}`, margin, sigY + 28);
   doc.text(`Date: ${now.toLocaleDateString()}`, pageW - margin - 200, sigY + 28);
 
-  // Footer on every page
+  // Footer on every page — company info banner + page number
+  const footerH = 56;
   for (let i = 1; i <= doc.getNumberOfPages(); i++) {
     doc.setPage(i);
     doc.setDrawColor(226, 232, 240);
-    doc.line(margin, pageH - 40, pageW - margin, pageH - 40);
-    doc.setFontSize(8);
+    doc.line(margin, pageH - footerH - 8, pageW - margin, pageH - footerH - 8);
+
+    if (footerImg) {
+      try {
+        // Banner aspect ~1920x180
+        const w = pageW - margin * 2;
+        const h = Math.min(footerH, w * (180 / 1920));
+        doc.addImage(footerImg, "PNG", margin, pageH - h - 18, w, h);
+      } catch { /* ignore */ }
+    } else {
+      doc.setFontSize(8);
+      doc.setTextColor(100, 116, 139);
+      doc.text(
+        `${company} — খোকন টাওয়ার, মেডিকেল কলেজ রোড, টমছমব্রিজ, কুমিল্লা  |  01888 117873, 01888 117890  |  Ambulance: 01888 117888`,
+        pageW / 2,
+        pageH - 30,
+        { align: "center" },
+      );
+    }
+
+    doc.setFontSize(7);
     doc.setTextColor(148, 163, 184);
-    doc.text(`© ${now.getFullYear()} ${company} — Confidential Report`, margin, pageH - 24);
-    doc.text(`Page ${i} of ${doc.getNumberOfPages()}`, pageW - margin, pageH - 24, { align: "right" });
+    doc.text(`© ${now.getFullYear()} ${company}`, margin, pageH - 8);
+    doc.text(`Page ${i} of ${doc.getNumberOfPages()}`, pageW - margin, pageH - 8, { align: "right" });
   }
 
   doc.save(opts.filename);
