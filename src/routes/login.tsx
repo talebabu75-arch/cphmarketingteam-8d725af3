@@ -47,11 +47,11 @@ function LoginPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!humanChecked) {
-      toast.error("অনুগ্রহ করে 'আমি রোবট নই' বক্সে টিক দিন");
+      toast.error("Please check the 'I'm not a robot' box");
       return;
     }
     if (Number(captchaAnswer) !== expected) {
-      toast.error("ভেরিফিকেশন উত্তর সঠিক নয়");
+      toast.error("Verification answer is incorrect");
       refreshCaptcha();
       return;
     }
