@@ -185,7 +185,7 @@ export function MonitoringTable() {
     autoTable(doc, {
       head: [head1, head2],
       body,
-      startY: 85,
+      startY: 105,
       styles: { fontSize: 7, cellPadding: 3, halign: "center", valign: "middle" },
       headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
       columnStyles: { 0: { halign: "left", cellWidth: 70, fontStyle: "bold" } },
