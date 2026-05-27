@@ -32,6 +32,11 @@ function fmtDate(year: number, month: number, day: number) {
   return `${year}-${m}-${d}`;
 }
 
+function isFridayDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).getDay() === 5;
+}
+
 export function MonitoringTable() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
@@ -77,9 +82,19 @@ export function MonitoringTable() {
   );
 
   function getCell(date: string, person: string): Entry {
-    return entries.get(`${date}|${person}`) ?? {
+    const stored = entries.get(`${date}|${person}`);
+    const base: Entry = stored ?? {
       entry_date: date, person, location: null, slot_10: null, slot_11: null, slot_14: null,
     };
+    if (isFridayDate(date)) {
+      return {
+        ...base,
+        slot_10: base.slot_10 ?? "Off day",
+        slot_11: base.slot_11 ?? "Off day",
+        slot_14: base.slot_14 ?? "Off day",
+      };
+    }
+    return base;
   }
 
   function update(date: string, person: string, field: "location" | SlotKey, value: string) {
@@ -528,7 +543,10 @@ export function MonitoringTable() {
 
 
       <MonthlyAnalysis
-        entries={Array.from(entries.values())}
+        entries={Array.from({ length: days }, (_, i) => i + 1).flatMap((day) => {
+          const date = fmtDate(year, month, day);
+          return PERSONS.map((person) => getCell(date, person));
+        })}
         persons={PERSONS}
         monthName={monthName}
       />
