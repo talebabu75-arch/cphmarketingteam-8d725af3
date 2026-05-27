@@ -82,9 +82,19 @@ export function MonitoringTable() {
   );
 
   function getCell(date: string, person: string): Entry {
-    return entries.get(`${date}|${person}`) ?? {
+    const stored = entries.get(`${date}|${person}`);
+    const base: Entry = stored ?? {
       entry_date: date, person, location: null, slot_10: null, slot_11: null, slot_14: null,
     };
+    if (isFridayDate(date)) {
+      return {
+        ...base,
+        slot_10: base.slot_10 ?? "Off day",
+        slot_11: base.slot_11 ?? "Off day",
+        slot_14: base.slot_14 ?? "Off day",
+      };
+    }
+    return base;
   }
 
   function update(date: string, person: string, field: "location" | SlotKey, value: string) {
