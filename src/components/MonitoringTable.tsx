@@ -125,8 +125,16 @@ export function MonitoringTable() {
 
   function downloadPdf() {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a3" });
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const monthLabel = new Date(year, month, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("Monitoring Marketing Team work", pageWidth / 2, 32, { align: "center" });
     doc.setFontSize(14);
-    doc.text(`Monitoring Report — ${monthName}`, 40, 30);
+    doc.text("Location Update", pageWidth / 2, 52, { align: "center" });
+    doc.setFontSize(12);
+    doc.text(`Month- ${monthLabel}`, pageWidth / 2, 70, { align: "center" });
+    doc.setFont("helvetica", "normal");
 
     const head1: any[] = [{ content: "Date", rowSpan: 2 }];
     PERSONS.forEach((p) => head1.push({ content: p, colSpan: 4 }));
