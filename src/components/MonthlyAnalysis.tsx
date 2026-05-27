@@ -96,7 +96,7 @@ export function MonthlyAnalysis({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 rounded-xl border bg-card shadow-sm p-4">
           <h3 className="text-sm font-medium mb-3">Per-Person Status Count</h3>
-          <div className="h-72">
+          <div className="h-72">{mounted && (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={barData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
