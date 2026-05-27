@@ -102,6 +102,23 @@ function ReportsPage() {
   if (!authed) return <div className="min-h-screen grid place-items-center text-muted-foreground">Loading…</div>;
 
   const years = Array.from({ length: 5 }, (_, i) => new Date().getFullYear() - i);
+  const personNames = persons.map((p) => p.name);
+
+  const handleAllReportsPDF = async () => {
+    const reports: Omit<PdfReportOptions, "filename">[] = [
+      buildPersonReport(entries, personNames, year),
+      buildDailyReport(entries, personNames, todayISO()),
+      buildWeeklyReport(entries, personNames, year, 0),
+      buildMonthlyReport(entries, personNames, year),
+      buildKpiReport(entries, personNames, year, "all"),
+    ];
+    await generateCombinedReportPDF({
+      filename: `all-reports-${year}.pdf`,
+      coverTitle: "Consolidated Reports",
+      coverSubtitle: `Person • Daily • Weekly • Monthly • KPI — ${year}`,
+      reports,
+    });
+  };
 
   return (
     <main className="min-h-screen">
@@ -119,13 +136,22 @@ function ReportsPage() {
               <p className="text-xs text-muted-foreground">Detailed performance reports & comparisons</p>
             </div>
           </div>
-          <select
-            value={year}
-            onChange={(e) => setYear(Number(e.target.value))}
-            className="rounded-md border bg-card px-3 py-1.5 text-sm"
-          >
-            {years.map((y) => <option key={y} value={y}>{y}</option>)}
-          </select>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              onClick={handleAllReportsPDF}
+              className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 shadow-sm"
+              title="সব রিপোর্ট একসাথে একটি PDF এ download করুন"
+            >
+              <FileDown className="size-3.5" /> All Reports PDF
+            </button>
+            <select
+              value={year}
+              onChange={(e) => setYear(Number(e.target.value))}
+              className="rounded-md border bg-card px-3 py-1.5 text-sm"
+            >
+              {years.map((y) => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
         </div>
       </header>
 
