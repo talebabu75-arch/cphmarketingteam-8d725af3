@@ -64,13 +64,15 @@ export function MonthlyAnalysis({
     (d) => d.value > 0,
   );
 
-  // Performance score: Yes weighted high, No negative, others neutral-ish
+  // Performance score: Yes counts positive; No and L.off reduce the percentage
   const performance = persons.map((p) => {
     const c = perPerson[p];
     const total = STATUSES.reduce((a, s) => a + c[s], 0);
     const yes = c["Yes"] ?? 0;
     const no = c["No"] ?? 0;
-    const score = total > 0 ? Math.round((yes / Math.max(1, yes + no)) * 100) : 0;
+    const loff = c["L.off"] ?? 0;
+    const denom = yes + no + loff;
+    const score = denom > 0 ? Math.round((yes / denom) * 100) : 0;
     return { name: p, yes, no, total, score };
   }).sort((a, b) => b.score - a.score);
 
