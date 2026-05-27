@@ -27,6 +27,7 @@ const Input = z.object({
 });
 
 export const generateSmartSuggestions = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => Input.parse(data))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
