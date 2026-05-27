@@ -420,6 +420,187 @@ export function MonitoringTable() {
       toast.error(`PDF parse error: ${e.message ?? e}`);
     }
   }
+  function enumerateDates(from: string, to: string): string[] {
+    const [fy, fm, fd] = from.split("-").map(Number);
+    const [ty, tm, td] = to.split("-").map(Number);
+    const start = new Date(fy, fm - 1, fd);
+    const end = new Date(ty, tm - 1, td);
+    if (start > end) return [];
+    const out: string[] = [];
+    const cur = new Date(start);
+    while (cur <= end) {
+      out.push(fmtDate(cur.getFullYear(), cur.getMonth(), cur.getDate()));
+      cur.setDate(cur.getDate() + 1);
+    }
+    return out;
+  }
+
+  async function fetchRangeEntries(from: string, to: string): Promise<Map<CellKey, Entry>> {
+    const { data, error } = await supabase
+      .from("monitoring_entries")
+      .select("*")
+      .gte("entry_date", from)
+      .lte("entry_date", to);
+    if (error) throw error;
+    const map = new Map<CellKey, Entry>();
+    (data ?? []).forEach((row: any) => map.set(`${row.entry_date}|${row.person}`, row as Entry));
+    return map;
+  }
+
+  function rangeCell(map: Map<CellKey, Entry>, date: string, person: string): Entry {
+    const stored = map.get(`${date}|${person}`);
+    const base: Entry = stored ?? {
+      entry_date: date, person, location: null, slot_10: null, slot_11: null, slot_14: null,
+    };
+    if (isFridayDate(date)) {
+      return {
+        ...base,
+        slot_10: base.slot_10 ?? "Off day",
+        slot_11: base.slot_11 ?? "Off day",
+        slot_14: base.slot_14 ?? "Off day",
+      };
+    }
+    return base;
+  }
+
+  async function downloadRangePdf(from: string, to: string, selectedPersons: string[]) {
+    const dates = enumerateDates(from, to);
+    if (dates.length === 0) { toast.error("ভুল ডেট রেঞ্জ"); return; }
+    const personsList = selectedPersons.length > 0 ? selectedPersons : PERSONS;
+    setRangeBusy(true);
+    try {
+      const map = await fetchRangeEntries(from, to);
+      const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a3" });
+      const pageWidth = doc.internal.pageSize.getWidth();
+      doc.setFillColor(37, 99, 235);
+      doc.rect(0, 0, pageWidth, 90, "F");
+      doc.setFillColor(29, 78, 216);
+      doc.rect(0, 86, pageWidth, 4, "F");
+      doc.setTextColor(255, 255, 255);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(20);
+      doc.text("Monitoring Marketing Team work", pageWidth / 2, 34, { align: "center" });
+      doc.setTextColor(254, 240, 138);
+      doc.setFont("helvetica", "bolditalic");
+      doc.setFontSize(14);
+      doc.text("Location Update", pageWidth / 2, 56, { align: "center" });
+      doc.setTextColor(219, 234, 254);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(13);
+      doc.text(`Range: ${from} to ${to}`, pageWidth / 2, 76, { align: "center" });
+      doc.setTextColor(0, 0, 0);
+      doc.setFont("helvetica", "normal");
+
+      const head1: any[] = [{ content: "Date", rowSpan: 2 }];
+      personsList.forEach((p) => head1.push({ content: p, colSpan: 4 }));
+      const head2: any[] = [];
+      personsList.forEach(() => {
+        head2.push("Location");
+        SLOTS.forEach((s) => head2.push(s.label));
+      });
+
+      const body = dates.map((date) => {
+        const [y, m, d] = date.split("-").map(Number);
+        const row: any[] = [
+          `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")} ${new Date(y, m - 1, d).toLocaleString(undefined, { weekday: "short" })}`,
+        ];
+        personsList.forEach((person) => {
+          const c = rangeCell(map, date, person);
+          row.push(c.location ?? "");
+          SLOTS.forEach((s) => row.push((c[s.key] as string) ?? ""));
+        });
+        return row;
+      });
+
+      const statusColors: Record<string, [number, number, number]> = {
+        "Yes": [187, 247, 208], "No": [254, 165, 165], "D.off": [254, 215, 170],
+        "L.off": [191, 219, 254], "Off day": [254, 202, 202],
+      };
+
+      autoTable(doc, {
+        head: [head1, head2], body, startY: 105,
+        styles: { fontSize: 7, cellPadding: 3, halign: "center", valign: "middle" },
+        headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
+        columnStyles: { 0: { halign: "left", cellWidth: 80, fontStyle: "bold" } },
+        didParseCell: (data) => {
+          if (data.section !== "body" || data.column.index === 0) return;
+          const relCol = (data.column.index - 1) % 4;
+          if (relCol === 0) return;
+          const val = String(data.cell.raw ?? "");
+          const c = statusColors[val];
+          if (c) data.cell.styles.fillColor = c;
+        },
+      });
+
+      const finalY = (doc as any).lastAutoTable?.finalY ?? 105;
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const sigLabels = ["Prepared By", "Marketing Manager", "Manager"];
+      let sigY = finalY + 40;
+      if (sigY + 70 > pageHeight - 30) { doc.addPage(); sigY = 80; }
+      const margin = 60;
+      const slot = (pageWidth - margin * 2) / sigLabels.length;
+      const lineWidth = 160;
+      doc.setDrawColor(60, 60, 60); doc.setLineWidth(0.6); doc.setTextColor(30, 30, 30);
+      sigLabels.forEach((label, i) => {
+        const cx = margin + slot * i + slot / 2;
+        const lineY = sigY + 30;
+        doc.line(cx - lineWidth / 2, lineY, cx + lineWidth / 2, lineY);
+        doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+        doc.text(label, cx, lineY + 16, { align: "center" });
+        doc.setFont("helvetica", "normal"); doc.setFontSize(9);
+        doc.setTextColor(110, 110, 110);
+        doc.text("(Signature & Date)", cx, lineY + 30, { align: "center" });
+        doc.setTextColor(30, 30, 30);
+      });
+
+      const suffix = selectedPersons.length > 0 && selectedPersons.length < PERSONS.length
+        ? `-${personsList.join("_")}` : "";
+      doc.save(`monitoring-${from}_to_${to}${suffix}.pdf`);
+    } catch (e: any) {
+      toast.error(`Failed: ${e.message ?? e}`);
+    } finally {
+      setRangeBusy(false);
+    }
+  }
+
+  async function downloadRangeExcel(from: string, to: string, selectedPersons: string[]) {
+    const dates = enumerateDates(from, to);
+    if (dates.length === 0) { toast.error("ভুল ডেট রেঞ্জ"); return; }
+    const personsList = selectedPersons.length > 0 ? selectedPersons : PERSONS;
+    setRangeBusy(true);
+    try {
+      const map = await fetchRangeEntries(from, to);
+      const header1: string[] = ["Date"];
+      personsList.forEach((p) => header1.push(p, "", "", ""));
+      const header2: string[] = [""];
+      personsList.forEach(() => header2.push("Location", ...SLOTS.map((s) => s.label)));
+      const rows: (string | number)[][] = [header1, header2];
+      dates.forEach((date) => {
+        const row: (string | number)[] = [date];
+        personsList.forEach((person) => {
+          const c = rangeCell(map, date, person);
+          row.push(c.location ?? "");
+          SLOTS.forEach((s) => row.push((c[s.key] as string) ?? ""));
+        });
+        rows.push(row);
+      });
+      const ws = XLSX.utils.aoa_to_sheet(rows);
+      ws["!merges"] = personsList.map((_, i) => ({
+        s: { r: 0, c: 1 + i * 4 }, e: { r: 0, c: 1 + i * 4 + 3 },
+      }));
+      ws["!cols"] = [{ wch: 12 }, ...personsList.flatMap(() => [{ wch: 18 }, { wch: 10 }, { wch: 10 }, { wch: 10 }])];
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Range");
+      const suffix = selectedPersons.length > 0 && selectedPersons.length < PERSONS.length
+        ? `-${personsList.join("_")}` : "";
+      XLSX.writeFile(wb, `monitoring-${from}_to_${to}${suffix}.xlsx`);
+    } catch (e: any) {
+      toast.error(`Failed: ${e.message ?? e}`);
+    } finally {
+      setRangeBusy(false);
+    }
+  }
+
 
 
 
