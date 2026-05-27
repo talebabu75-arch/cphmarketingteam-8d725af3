@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { Trophy, TrendingDown, Grid3x3, Target, Sparkles, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { generateSmartSuggestions } from "@/lib/insights.functions";
+import { generateSmartSuggestions, generateAutoSummary } from "@/lib/insights.functions";
 import { toast } from "sonner";
 
 type Entry = {
