@@ -867,3 +867,224 @@ function AnalyticsTab({ entries, persons, year }: { entries: Entry[]; persons: s
     </div>
   );
 }
+
+/* ---------- KPI: Visit count / Attendance / Coverage / Performance % ---------- */
+function KpiTab({ entries, persons, year }: { entries: Entry[]; persons: string[]; year: number }) {
+  const [month, setMonth] = useState<number | "all">("all");
+
+  const scoped = useMemo(() => {
+    if (month === "all") return entries;
+    return entries.filter((e) => new Date(e.entry_date).getMonth() === month);
+  }, [entries, month]);
+
+  // total working days in scope (non-Friday days that have any entry across team)
+  const workingDays = useMemo(() => {
+    const set = new Set<string>();
+    scoped.forEach((e) => {
+      const dow = new Date(e.entry_date).getDay();
+      if (dow !== 5) set.add(e.entry_date);
+    });
+    return set.size || 1;
+  }, [scoped]);
+
+  const rows = useMemo(() => {
+    return persons.map((p) => {
+      const my = scoped.filter((e) => e.person === p);
+      let visits = 0;       // total "Yes" across slots
+      let no = 0, loff = 0, doff = 0;
+      let presentDays = 0;  // any "Yes" on that day
+      const locations = new Set<string>();
+      my.forEach((e) => {
+        const vals = SLOTS.map((s) => e[s.key as "slot_10"|"slot_11"|"slot_14"]);
+        let dayYes = 0;
+        vals.forEach((v) => {
+          if (v === "Yes") { visits += 1; dayYes += 1; }
+          else if (v === "No") no += 1;
+          else if (v === "L.off") loff += 1;
+          else if (v === "D.off") doff += 1;
+        });
+        if (dayYes > 0) presentDays += 1;
+        if (e.location && dayYes > 0) locations.add(e.location);
+      });
+      const attendance = Math.round((presentDays / workingDays) * 100);
+      // visit rate vs. expected (3 slots per working day)
+      const visitRate = Math.round((visits / (workingDays * SLOTS.length)) * 100);
+      // performance: weighted composite (attendance 40%, visitRate 40%, coverage 20% capped at 10 locations)
+      const coverageScore = Math.min(100, locations.size * 10);
+      const performance = Math.round(attendance * 0.4 + visitRate * 0.4 + coverageScore * 0.2);
+      return {
+        name: p, visits, presentDays, attendance, visitRate,
+        coverage: locations.size, coverageScore,
+        no, loff, doff, performance,
+      };
+    }).sort((a, b) => b.performance - a.performance);
+  }, [scoped, persons, workingDays]);
+
+  const totals = useMemo(() => {
+    const totalVisits = rows.reduce((a, r) => a + r.visits, 0);
+    const avgAttendance = rows.length ? Math.round(rows.reduce((a, r) => a + r.attendance, 0) / rows.length) : 0;
+    const avgPerformance = rows.length ? Math.round(rows.reduce((a, r) => a + r.performance, 0) / rows.length) : 0;
+    const totalCoverage = new Set<string>();
+    scoped.forEach((e) => { if (e.location) totalCoverage.add(e.location); });
+    return { totalVisits, avgAttendance, avgPerformance, totalCoverage: totalCoverage.size };
+  }, [rows, scoped]);
+
+  const handlePDF = () => {
+    generateReportPDF({
+      title: "KPI Report — Staff Performance",
+      subtitle: `${month === "all" ? `Full year ${year}` : `${MONTH_NAMES[month as number]} ${year}`} • ${workingDays} working days`,
+      summary: [
+        { label: "Total Visits", value: totals.totalVisits },
+        { label: "Avg Attendance", value: `${totals.avgAttendance}%` },
+        { label: "Avg Performance", value: `${totals.avgPerformance}%` },
+        { label: "Locations Covered", value: totals.totalCoverage },
+      ],
+      sections: [{
+        title: "KPI Scorecard",
+        head: ["#", "Staff", "Visits", "Present", "Attendance", "Visit Rate", "Coverage", "Performance"],
+        body: rows.map((r, i) => [
+          i + 1, r.name, r.visits, `${r.presentDays}/${workingDays}`,
+          `${r.attendance}%`, `${r.visitRate}%`, `${r.coverage} loc`, `${r.performance}%`,
+        ]),
+      }],
+      filename: `kpi-report-${year}${month === "all" ? "" : `-${MONTH_NAMES[month as number]}`}.pdf`,
+    });
+  };
+
+  const handleCSV = () => {
+    const header = ["Rank", "Staff", "Visits", "Present Days", "Working Days", "Attendance %", "Visit Rate %", "Coverage", "Performance %"];
+    const body = rows.map((r, i) => [i + 1, r.name, r.visits, r.presentDays, workingDays, r.attendance, r.visitRate, r.coverage, r.performance]);
+    downloadCSV(`kpi-${year}${month === "all" ? "" : `-${MONTH_NAMES[month as number]}`}.csv`, [header, ...body]);
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h2 className="text-xl font-semibold flex items-center gap-2"><Target className="size-5 text-primary" /> KPI Scorecard</h2>
+          <p className="text-sm text-muted-foreground">Visit count • Attendance • Coverage • Performance %</p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <select
+            value={String(month)}
+            onChange={(e) => setMonth(e.target.value === "all" ? "all" : Number(e.target.value))}
+            className="rounded-md border bg-card px-3 py-1.5 text-sm"
+          >
+            <option value="all">Full year ({year})</option>
+            {MONTH_NAMES.map((m, i) => <option key={m} value={i}>{m} {year}</option>)}
+          </select>
+          <button onClick={handlePDF} className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90">
+            <FileDown className="size-3.5" /> One-Click PDF
+          </button>
+          <button onClick={handleCSV} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
+            <Download className="size-3.5" /> CSV
+          </button>
+        </div>
+      </div>
+
+      {/* Team-level summary cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <KpiCard label="Total Visits" value={totals.totalVisits} accent="bg-status-yes" />
+        <KpiCard label="Avg Attendance" value={`${totals.avgAttendance}%`} accent="bg-status-loff" />
+        <KpiCard label="Locations Covered" value={totals.totalCoverage} accent="bg-status-doff" />
+        <KpiCard label="Avg Performance" value={`${totals.avgPerformance}%`} accent="bg-primary" />
+      </div>
+
+      {/* Per-staff scorecards */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {rows.map((r, i) => (
+          <div key={r.name} className="rounded-xl border bg-card shadow-sm p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-bold text-muted-foreground">#{i + 1}</span>
+                  <h3 className="font-semibold">{r.name}</h3>
+                </div>
+                <p className="text-xs text-muted-foreground">{r.presentDays}/{workingDays} working days</p>
+              </div>
+              <div className={`text-2xl font-bold ${
+                r.performance >= 80 ? "text-green-600"
+                : r.performance >= 50 ? "text-blue-600"
+                : "text-red-600"
+              }`}>
+                {r.performance}%
+              </div>
+            </div>
+            <KpiBar label="Visits" value={r.visits} sub={`${r.visitRate}% rate`} pct={r.visitRate} color="bg-green-500" />
+            <KpiBar label="Attendance" value={`${r.attendance}%`} sub={`${r.presentDays} days`} pct={r.attendance} color="bg-blue-500" />
+            <KpiBar label="Coverage" value={`${r.coverage} loc`} sub={`${r.coverageScore}% score`} pct={r.coverageScore} color="bg-orange-500" />
+          </div>
+        ))}
+      </div>
+
+      {/* Detail table */}
+      <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead className="bg-muted/40 text-xs uppercase">
+              <tr>
+                <th className="px-3 py-2 text-left">#</th>
+                <th className="px-3 py-2 text-left">Staff</th>
+                <th className="px-3 py-2 text-center">Visits</th>
+                <th className="px-3 py-2 text-center">Present</th>
+                <th className="px-3 py-2 text-center">Attendance</th>
+                <th className="px-3 py-2 text-center">Visit Rate</th>
+                <th className="px-3 py-2 text-center">Coverage</th>
+                <th className="px-3 py-2 text-center">Performance</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((r, i) => (
+                <tr key={r.name} className="border-t hover:bg-accent/30">
+                  <td className="px-3 py-2 text-muted-foreground">{i + 1}</td>
+                  <td className="px-3 py-2 font-medium">
+                    <Link to="/person/$name" params={{ name: r.name }} className="hover:text-primary hover:underline">{r.name}</Link>
+                  </td>
+                  <td className="px-3 py-2 text-center font-semibold">{r.visits}</td>
+                  <td className="px-3 py-2 text-center">{r.presentDays}/{workingDays}</td>
+                  <td className="px-3 py-2 text-center">{r.attendance}%</td>
+                  <td className="px-3 py-2 text-center">{r.visitRate}%</td>
+                  <td className="px-3 py-2 text-center">{r.coverage} loc</td>
+                  <td className="px-3 py-2 text-center">
+                    <span className={`inline-block min-w-[52px] rounded-md px-2 py-1 text-xs font-semibold ${
+                      r.performance >= 80 ? "bg-status-yes text-status-yes-foreground"
+                      : r.performance >= 50 ? "bg-status-loff text-status-loff-foreground"
+                      : "bg-status-no text-status-no-foreground"
+                    }`}>{r.performance}%</span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="px-3 py-2 text-xs text-muted-foreground border-t bg-muted/20">
+          <b>Performance %</b> = Attendance × 40% + Visit Rate × 40% + Coverage × 20%
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiCard({ label, value, accent }: { label: string; value: string | number; accent: string }) {
+  return (
+    <div className="rounded-xl border bg-card shadow-sm p-4 relative overflow-hidden">
+      <div className={`absolute top-0 left-0 right-0 h-1 ${accent}`} />
+      <div className="text-xs text-muted-foreground uppercase tracking-wide">{label}</div>
+      <div className="text-2xl font-bold mt-1">{value}</div>
+    </div>
+  );
+}
+
+function KpiBar({ label, value, sub, pct, color }: { label: string; value: string | number; sub: string; pct: number; color: string }) {
+  return (
+    <div>
+      <div className="flex items-center justify-between text-xs mb-1">
+        <span className="font-medium">{label}</span>
+        <span className="text-muted-foreground">{value} · {sub}</span>
+      </div>
+      <div className="h-2 rounded-full bg-muted overflow-hidden">
+        <div className={`h-full ${color} transition-all`} style={{ width: `${Math.min(100, pct)}%` }} />
+      </div>
+    </div>
+  );
+}
