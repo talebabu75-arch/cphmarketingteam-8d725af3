@@ -55,6 +55,20 @@ export function QuickAddFab() {
               label="Open Reports"
               onClick={() => { navigate({ to: "/reports" }); setOpen(false); }}
             />
+            {isManager && (
+              <FabItem
+                icon={<ClipboardList className="size-4" />}
+                label="Approvals"
+                onClick={() => { navigate({ to: "/admin/approvals" }); setOpen(false); }}
+              />
+            )}
+            {isManager && (
+              <FabItem
+                icon={<Activity className="size-4" />}
+                label="Activity Log"
+                onClick={() => { navigate({ to: "/admin/activity" }); setOpen(false); }}
+              />
+            )}
             {isAdmin && (
               <FabItem
                 icon={<Shield className="size-4" />}
