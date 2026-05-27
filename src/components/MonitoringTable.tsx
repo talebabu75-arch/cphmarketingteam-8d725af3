@@ -2,6 +2,8 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LOCATIONS, PERSONS, SLOTS, STATUSES, statusClass, type SlotKey } from "@/lib/dashboard-config";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Entry = {
   id?: string;
@@ -113,6 +115,59 @@ export function MonitoringTable() {
     setYear(d.getFullYear()); setMonth(d.getMonth());
   }
 
+  function downloadPdf() {
+    const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a3" });
+    doc.setFontSize(14);
+    doc.text(`Monitoring Report — ${monthName}`, 40, 30);
+
+    const head1: any[] = [{ content: "Date", rowSpan: 2 }];
+    PERSONS.forEach((p) => head1.push({ content: p, colSpan: 4 }));
+    const head2: any[] = [];
+    PERSONS.forEach(() => {
+      head2.push("Location");
+      SLOTS.forEach((s) => head2.push(s.label));
+    });
+
+    const body = Array.from({ length: days }, (_, i) => i + 1).map((day) => {
+      const date = fmtDate(year, month, day);
+      const row: any[] = [
+        `${String(day).padStart(2, "0")} ${new Date(year, month, day).toLocaleString(undefined, { weekday: "short" })}`,
+      ];
+      PERSONS.forEach((person) => {
+        const c = getCell(date, person);
+        row.push(c.location ?? "");
+        SLOTS.forEach((s) => row.push((c[s.key] as string) ?? ""));
+      });
+      return row;
+    });
+
+    const statusColors: Record<string, [number, number, number]> = {
+      "Yes": [187, 247, 208],
+      "D.off": [254, 215, 170],
+      "L.off": [191, 219, 254],
+      "Off day": [254, 202, 202],
+    };
+
+    autoTable(doc, {
+      head: [head1, head2],
+      body,
+      startY: 50,
+      styles: { fontSize: 7, cellPadding: 3, halign: "center", valign: "middle" },
+      headStyles: { fillColor: [37, 99, 235], textColor: 255, fontStyle: "bold" },
+      columnStyles: { 0: { halign: "left", cellWidth: 70, fontStyle: "bold" } },
+      didParseCell: (data) => {
+        if (data.section !== "body" || data.column.index === 0) return;
+        const relCol = (data.column.index - 1) % 4;
+        if (relCol === 0) return; // location
+        const val = String(data.cell.raw ?? "");
+        const c = statusColors[val];
+        if (c) data.cell.styles.fillColor = c;
+      },
+    });
+
+    doc.save(`monitoring-${year}-${String(month + 1).padStart(2, "0")}.pdf`);
+  }
+
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -120,6 +175,9 @@ export function MonitoringTable() {
           <button onClick={prevMonth} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">←</button>
           <div className="rounded-md border bg-card px-4 py-1.5 text-sm font-medium min-w-[180px] text-center">{monthName}</div>
           <button onClick={nextMonth} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">→</button>
+          <button onClick={downloadPdf} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
+            Download PDF
+          </button>
         </div>
         <Legend />
       </div>
