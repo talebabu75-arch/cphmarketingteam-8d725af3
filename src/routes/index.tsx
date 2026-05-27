@@ -1,8 +1,9 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MonitoringTable } from "@/components/MonitoringTable";
-import { LogOut, BarChart3 } from "lucide-react";
+import { useDashboardLists } from "@/lib/use-lists";
+import { LogOut, BarChart3, User } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
