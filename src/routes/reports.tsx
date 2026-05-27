@@ -10,7 +10,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
   CartesianGrid, LineChart, Line, Cell,
 } from "recharts";
-import { Trophy, TrendingDown, Grid3x3 } from "lucide-react";
+import { Trophy, TrendingDown, Grid3x3, Target } from "lucide-react";
 
 type Entry = {
   entry_date: string;
