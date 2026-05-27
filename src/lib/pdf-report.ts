@@ -1,23 +1,32 @@
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import companyLogo from "@/assets/company-banner.png";
+import companyFooter from "@/assets/company-footer.png";
 
-let _logoData: string | null = null;
-async function loadLogo(): Promise<string | null> {
-  if (_logoData) return _logoData;
+async function urlToDataUrl(url: string): Promise<string | null> {
   try {
-    const res = await fetch(companyLogo);
+    const res = await fetch(url);
     const blob = await res.blob();
-    _logoData = await new Promise<string>((resolve, reject) => {
+    return await new Promise<string>((resolve, reject) => {
       const r = new FileReader();
       r.onload = () => resolve(r.result as string);
       r.onerror = reject;
       r.readAsDataURL(blob);
     });
-    return _logoData;
   } catch {
     return null;
   }
+}
+
+let _logoData: string | null = null;
+let _footerData: string | null = null;
+async function loadLogo() {
+  if (!_logoData) _logoData = await urlToDataUrl(companyLogo);
+  return _logoData;
+}
+async function loadFooter() {
+  if (!_footerData) _footerData = await urlToDataUrl(companyFooter);
+  return _footerData;
 }
 
 

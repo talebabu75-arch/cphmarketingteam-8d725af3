@@ -76,6 +76,15 @@ function Index() {
         <PersonProfiles />
         <MonitoringTable />
       </div>
+      <footer className="border-t bg-card mt-8">
+        <div className="max-w-[1600px] mx-auto px-6 py-4 flex justify-center">
+          <img
+            src={new URL("../assets/company-footer.png", import.meta.url).href}
+            alt="Cumilla People's Hospital — Contact"
+            className="w-full max-w-5xl h-auto object-contain"
+          />
+        </div>
+      </footer>
     </main>
   );
 }
