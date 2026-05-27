@@ -128,11 +128,12 @@ function ReportsPage() {
 
       <div className="max-w-[1600px] mx-auto px-6 py-6">
         <Tabs defaultValue="person" className="space-y-4">
-          <TabsList className="grid grid-cols-2 sm:grid-cols-4 w-full sm:w-auto">
+          <TabsList className="grid grid-cols-2 sm:grid-cols-5 w-full sm:w-auto">
             <TabsTrigger value="person">Person-wise</TabsTrigger>
             <TabsTrigger value="daily">Daily</TabsTrigger>
             <TabsTrigger value="weekly">Weekly</TabsTrigger>
-            <TabsTrigger value="monthly">Monthly Comparison</TabsTrigger>
+            <TabsTrigger value="monthly">Monthly</TabsTrigger>
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
           </TabsList>
 
           <TabsContent value="person">
@@ -146,6 +147,9 @@ function ReportsPage() {
           </TabsContent>
           <TabsContent value="monthly">
             <MonthlyComparison entries={entries} persons={persons.map((p) => p.name)} year={year} />
+          </TabsContent>
+          <TabsContent value="analytics">
+            <AnalyticsTab entries={entries} persons={persons.map((p) => p.name)} year={year} />
           </TabsContent>
         </Tabs>
       </div>
