@@ -74,6 +74,9 @@ export function MonthlyAnalysis({
     return { name: p, yes, no, total, score };
   }).sort((a, b) => b.score - a.score);
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   return (
     <section className="space-y-4">
       <div className="flex items-end justify-between flex-wrap gap-2">
