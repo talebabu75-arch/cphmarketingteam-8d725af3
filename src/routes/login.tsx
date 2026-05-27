@@ -47,11 +47,11 @@ function LoginPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!humanChecked) {
-      toast.error("অনুগ্রহ করে 'আমি রোবট নই' বক্সে টিক দিন");
+      toast.error("Please check the 'I'm not a robot' box");
       return;
     }
     if (Number(captchaAnswer) !== expected) {
-      toast.error("ভেরিফিকেশন উত্তর সঠিক নয়");
+      toast.error("Verification answer is incorrect");
       refreshCaptcha();
       return;
     }
@@ -94,7 +94,7 @@ function LoginPage() {
           </div>
 
           <div>
-            <label className="text-sm font-medium">ভেরিফিকেশন</label>
+            <label className="text-sm font-medium">Verification</label>
             <div className="mt-1 flex items-center gap-2">
               <div className="px-3 py-2 rounded-md border bg-muted text-sm font-mono select-none tracking-wider">
                 {captcha.a} + {captcha.b} = ?
@@ -102,7 +102,7 @@ function LoginPage() {
               <input
                 type="number" required value={captchaAnswer}
                 onChange={(e) => setCaptchaAnswer(e.target.value)}
-                placeholder="উত্তর"
+                placeholder="Answer"
                 className="flex-1 rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <button
@@ -122,7 +122,7 @@ function LoginPage() {
               onChange={(e) => setHumanChecked(e.target.checked)}
               className="size-4 rounded border-input cursor-pointer accent-primary"
             />
-            <span className="text-sm">আমি রোবট নই (I'm not a robot)</span>
+            <span className="text-sm">I'm not a robot</span>
           </label>
 
           <button
