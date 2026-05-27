@@ -8,7 +8,7 @@ export const LOCATIONS = [
   "Debidwer", "Chandina", "Mudafforgonj", "Mohammad Ali",
 ];
 
-export const STATUSES = ["Yes", "D.off", "L.off", "Off day"] as const;
+export const STATUSES = ["Yes", "No", "D.off", "L.off", "Off day"] as const;
 export type Status = (typeof STATUSES)[number];
 
 export const SLOTS = [
