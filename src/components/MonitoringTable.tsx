@@ -127,13 +127,30 @@ export function MonitoringTable() {
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a3" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const monthLabel = new Date(year, month, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
+
+    // Colored header band
+    doc.setFillColor(37, 99, 235); // blue
+    doc.rect(0, 0, pageWidth, 90, "F");
+    doc.setFillColor(29, 78, 216); // darker blue accent strip
+    doc.rect(0, 86, pageWidth, 4, "F");
+
+    doc.setTextColor(255, 255, 255);
     doc.setFont("helvetica", "bold");
-    doc.setFontSize(18);
-    doc.text("Monitoring Marketing Team work", pageWidth / 2, 32, { align: "center" });
+    doc.setFontSize(20);
+    doc.text("Monitoring Marketing Team work", pageWidth / 2, 34, { align: "center" });
+
+    doc.setTextColor(254, 240, 138); // soft yellow
+    doc.setFont("helvetica", "bolditalic");
     doc.setFontSize(14);
-    doc.text("Location Update", pageWidth / 2, 52, { align: "center" });
-    doc.setFontSize(12);
-    doc.text(`Month- ${monthLabel}`, pageWidth / 2, 70, { align: "center" });
+    doc.text("Location Update", pageWidth / 2, 56, { align: "center" });
+
+    doc.setTextColor(219, 234, 254); // light blue
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(13);
+    doc.text(`Month- ${monthLabel}`, pageWidth / 2, 76, { align: "center" });
+
+    // reset for table
+    doc.setTextColor(0, 0, 0);
     doc.setFont("helvetica", "normal");
 
     const head1: any[] = [{ content: "Date", rowSpan: 2 }];
