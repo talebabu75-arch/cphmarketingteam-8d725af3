@@ -1,6 +1,8 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { LOCATIONS, PERSONS, SLOTS, STATUSES, statusClass, type SlotKey } from "@/lib/dashboard-config";
+import { SLOTS, STATUSES, statusClass, type SlotKey } from "@/lib/dashboard-config";
+import { useDashboardLists } from "@/lib/use-lists";
+import { ManageListsDialog } from "@/components/ManageListsDialog";
 import { toast } from "sonner";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
@@ -33,6 +35,10 @@ export function MonitoringTable() {
   const [month, setMonth] = useState(today.getMonth());
   const [entries, setEntries] = useState<Map<CellKey, Entry>>(new Map());
   const [loading, setLoading] = useState(true);
+  const [manageOpen, setManageOpen] = useState(false);
+  const { persons: personItems, locations: locationItems, refresh: refreshLists } = useDashboardLists();
+  const PERSONS = useMemo(() => personItems.map((p) => p.name), [personItems]);
+  const LOCATIONS = useMemo(() => locationItems.map((l) => l.name), [locationItems]);
   const savingRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   const days = daysInMonth(year, month);
@@ -178,6 +184,9 @@ export function MonitoringTable() {
           <button onClick={downloadPdf} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
             Download PDF
           </button>
+          <button onClick={() => setManageOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+            Manage Lists
+          </button>
         </div>
         <Legend />
       </div>
@@ -251,6 +260,14 @@ export function MonitoringTable() {
           </table>
         </div>
       </div>
+
+      <ManageListsDialog
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
+        persons={personItems}
+        locations={locationItems}
+        onChanged={refreshLists}
+      />
     </section>
   );
 }
