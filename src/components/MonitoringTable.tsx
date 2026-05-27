@@ -512,7 +512,10 @@ export function MonitoringTable() {
               )}
             </tbody>
           </table>
+        </div>
       </div>
+
+
 
       <MonthlyAnalysis
         entries={Array.from(entries.values())}
