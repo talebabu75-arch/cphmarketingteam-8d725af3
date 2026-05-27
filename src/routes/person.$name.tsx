@@ -162,6 +162,132 @@ function PersonProfile() {
       ? `Q${quarter + 1} ${year}`
       : `${new Date(year, month, 1).toLocaleString("en", { month: "long" })} ${year}`;
 
+  const getRank = (score: number) => {
+    if (score >= 90) return { tier: "Platinum", emoji: "🏆", grad: ["#e5e4e2", "#9ca3af"], accent: "#1f2937" };
+    if (score >= 75) return { tier: "Gold", emoji: "🥇", grad: ["#fde68a", "#d97706"], accent: "#7c2d12" };
+    if (score >= 60) return { tier: "Silver", emoji: "🥈", grad: ["#e5e7eb", "#6b7280"], accent: "#111827" };
+    if (score >= 40) return { tier: "Bronze", emoji: "🥉", grad: ["#fbbf24", "#92400e"], accent: "#3f2d0a" };
+    return { tier: "Participant", emoji: "🎖️", grad: ["#bae6fd", "#0369a1"], accent: "#0c4a6e" };
+  };
+
+  const downloadAchievementCard = () => {
+    const W = 1200, H = 1500;
+    const canvas = document.createElement("canvas");
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext("2d")!;
+    const rank = getRank(stats.score);
+
+    // Background gradient
+    const bg = ctx.createLinearGradient(0, 0, W, H);
+    bg.addColorStop(0, rank.grad[0]);
+    bg.addColorStop(1, rank.grad[1]);
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    // Inner card
+    ctx.fillStyle = "#ffffff";
+    const pad = 60;
+    roundRect(ctx, pad, pad, W - pad * 2, H - pad * 2, 32);
+    ctx.fill();
+
+    // Border accent
+    ctx.strokeStyle = rank.accent;
+    ctx.lineWidth = 6;
+    roundRect(ctx, pad + 20, pad + 20, W - (pad + 20) * 2, H - (pad + 20) * 2, 24);
+    ctx.stroke();
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = rank.accent;
+    ctx.font = "bold 38px system-ui, sans-serif";
+    ctx.fillText("CERTIFICATE OF ACHIEVEMENT", W / 2, 200);
+
+    ctx.font = "20px system-ui, sans-serif";
+    ctx.fillStyle = "#6b7280";
+    ctx.fillText("Performance Recognition", W / 2, 240);
+
+    // Emoji medal
+    ctx.font = "200px system-ui, sans-serif";
+    ctx.fillText(rank.emoji, W / 2, 460);
+
+    // Tier
+    ctx.font = "bold 64px system-ui, sans-serif";
+    ctx.fillStyle = rank.accent;
+    ctx.fillText(`${rank.tier} Tier`, W / 2, 550);
+
+    // Awarded to
+    ctx.font = "22px system-ui, sans-serif";
+    ctx.fillStyle = "#6b7280";
+    ctx.fillText("Awarded to", W / 2, 640);
+
+    ctx.font = "bold 80px system-ui, sans-serif";
+    ctx.fillStyle = "#111827";
+    ctx.fillText(name, W / 2, 730);
+
+    // Period
+    ctx.font = "22px system-ui, sans-serif";
+    ctx.fillStyle = "#6b7280";
+    ctx.fillText(`for the period of ${periodLabel}`, W / 2, 780);
+
+    // Score circle
+    const cx = W / 2, cy = 950, r = 110;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = rank.grad[1];
+    ctx.fill();
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 72px system-ui, sans-serif";
+    ctx.textBaseline = "middle";
+    ctx.fillText(`${stats.score}%`, cx, cy);
+    ctx.textBaseline = "alphabetic";
+
+    ctx.fillStyle = "#6b7280";
+    ctx.font = "20px system-ui, sans-serif";
+    ctx.fillText("Performance Score", W / 2, 1100);
+
+    // Stats row
+    const stat = (label: string, value: string | number, x: number) => {
+      ctx.fillStyle = rank.accent;
+      ctx.font = "bold 38px system-ui, sans-serif";
+      ctx.fillText(String(value), x, 1210);
+      ctx.fillStyle = "#6b7280";
+      ctx.font = "16px system-ui, sans-serif";
+      ctx.fillText(label, x, 1240);
+    };
+    stat("Yes", stats.counts["Yes"] ?? 0, W / 2 - 320);
+    stat("Days Active", stats.daysActive, W / 2 - 100);
+    stat("Total Slots", stats.totalSlots, W / 2 + 120);
+    stat("Extra D.off", stats.extraDoff, W / 2 + 320);
+
+    // Footer
+    ctx.fillStyle = "#9ca3af";
+    ctx.font = "16px system-ui, sans-serif";
+    ctx.fillText(`Issued on ${new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })}`, W / 2, 1370);
+    ctx.font = "italic 14px system-ui, sans-serif";
+    ctx.fillText("Monitoring Performance System", W / 2, 1400);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `achievement-${name}-${periodLabel.replace(/\s+/g, "_")}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }, "image/png");
+  };
+
+  function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
+    c.beginPath();
+    c.moveTo(x + r, y);
+    c.arcTo(x + w, y, x + w, y + h, r);
+    c.arcTo(x + w, y + h, x, y + h, r);
+    c.arcTo(x, y + h, x, y, r);
+    c.arcTo(x, y, x + w, y, r);
+    c.closePath();
+  }
+
   if (!authed) return <div className="min-h-screen grid place-items-center text-muted-foreground">Loading…</div>;
 
   return (
