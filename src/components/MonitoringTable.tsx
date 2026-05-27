@@ -364,6 +364,19 @@ export function MonitoringTable() {
               }}
             />
           </label>
+          <label className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition cursor-pointer">
+            Import PDF
+            <input
+              type="file"
+              accept="application/pdf,.pdf"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImportPdf(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
           <button onClick={() => setManageOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
             Manage Lists
           </button>
