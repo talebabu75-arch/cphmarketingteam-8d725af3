@@ -157,9 +157,9 @@ export function MonitoringTable() {
     doc.setFont("helvetica", "normal");
 
     const head1: any[] = [{ content: "Date", rowSpan: 2 }];
-    PERSONS.forEach((p) => head1.push({ content: p, colSpan: 4 }));
+    personsList.forEach((p) => head1.push({ content: p, colSpan: 4 }));
     const head2: any[] = [];
-    PERSONS.forEach(() => {
+    personsList.forEach(() => {
       head2.push("Location");
       SLOTS.forEach((s) => head2.push(s.label));
     });
@@ -169,7 +169,7 @@ export function MonitoringTable() {
       const row: any[] = [
         `${String(day).padStart(2, "0")} ${new Date(year, month, day).toLocaleString(undefined, { weekday: "short" })}`,
       ];
-      PERSONS.forEach((person) => {
+      personsList.forEach((person) => {
         const c = getCell(date, person);
         row.push(c.location ?? "");
         SLOTS.forEach((s) => row.push((c[s.key] as string) ?? ""));
