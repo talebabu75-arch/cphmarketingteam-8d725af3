@@ -184,6 +184,9 @@ export function MonitoringTable() {
           <button onClick={downloadPdf} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
             Download PDF
           </button>
+          <button onClick={() => setManageOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+            Manage Lists
+          </button>
         </div>
         <Legend />
       </div>
