@@ -102,7 +102,7 @@ function LoginPage() {
               <input
                 type="number" required value={captchaAnswer}
                 onChange={(e) => setCaptchaAnswer(e.target.value)}
-                placeholder="উত্তর"
+                placeholder="Answer"
                 className="flex-1 rounded-md border bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring"
               />
               <button
