@@ -126,18 +126,24 @@ function PersonProfile() {
       const m = new Date(e.entry_date).getMonth();
       if (!perMonth[m]) perMonth[m] = { yes: 0, no: 0, loff: 0, extra: 0 };
       let dayDoff = 0;
+      const slotVals: string[] = [];
       SLOTS.forEach((s) => {
         const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
-        if (v && STATUSES.includes(v as any)) {
-          (arr[m] as any)[v] += 1;
-          if (v === "Yes") perMonth[m].yes += 1;
-          if (v === "No") perMonth[m].no += 1;
-          if (v === "L.off") perMonth[m].loff += 1;
-          if (v === "D.off") dayDoff += 1;
-        }
+        if (v && STATUSES.includes(v as any)) slotVals.push(v);
       });
+      const allOffDay = slotVals.length === SLOTS.length && slotVals.every((v) => v === "Off day");
+      slotVals.forEach((v) => {
+        if (allOffDay && v === "Off day") return;
+        (arr[m] as any)[v] += 1;
+        if (v === "Yes") perMonth[m].yes += 1;
+        if (v === "No") perMonth[m].no += 1;
+        if (v === "L.off") perMonth[m].loff += 1;
+        if (v === "D.off") dayDoff += 1;
+      });
+      if (allOffDay) (arr[m] as any)["Off day"] += 1;
       if (dayDoff > 1) perMonth[m].extra += dayDoff - 1;
     });
+
     arr.forEach((row, i) => {
       const p = perMonth[i];
       if (!p) return;
