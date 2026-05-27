@@ -70,16 +70,17 @@ export function MonthlyAnalysis({
     (d) => d.value > 0,
   );
 
-  // Performance score: Yes counts positive; No and L.off reduce the percentage
+  // Performance score: Yes positive; No, L.off, and extra D.off (>1/day) reduce score
   const performance = persons.map((p) => {
     const c = perPerson[p];
     const total = STATUSES.reduce((a, s) => a + c[s], 0);
     const yes = c["Yes"] ?? 0;
     const no = c["No"] ?? 0;
     const loff = c["L.off"] ?? 0;
-    const denom = yes + no + loff;
+    const extraDoff = extraDoffPerPerson[p] ?? 0;
+    const denom = yes + no + loff + extraDoff;
     const score = denom > 0 ? Math.round((yes / denom) * 100) : 0;
-    return { name: p, yes, no, total, score };
+    return { name: p, yes, no, total, score, extraDoff };
   }).sort((a, b) => b.score - a.score);
 
   const [mounted, setMounted] = useState(false);
