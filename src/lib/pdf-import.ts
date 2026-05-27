@@ -1,9 +1,12 @@
-import * as pdfjsLib from "pdfjs-dist";
-// @ts-ignore - Vite worker URL
-import workerSrc from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { SLOTS, STATUSES } from "@/lib/dashboard-config";
 
-(pdfjsLib as any).GlobalWorkerOptions.workerSrc = workerSrc;
+async function loadPdfJs() {
+  const pdfjsLib: any = await import("pdfjs-dist");
+  // @ts-ignore - Vite worker URL
+  const workerSrc = (await import("pdfjs-dist/build/pdf.worker.min.mjs?url")).default;
+  pdfjsLib.GlobalWorkerOptions.workerSrc = workerSrc;
+  return pdfjsLib;
+}
 
 export type ParsedEntry = {
   entry_date: string;
@@ -56,8 +59,9 @@ function parseTitle(rows: Cell[][]): { year: number; month: number } | null {
 }
 
 export async function parseMonitoringPdf(file: File, persons: string[]): Promise<ParsedEntry[]> {
+  const pdfjsLib = await loadPdfJs();
   const buf = await file.arrayBuffer();
-  const pdf = await (pdfjsLib as any).getDocument({ data: buf }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
 
   const allRows: Cell[][] = [];
   for (let p = 1; p <= pdf.numPages; p++) {
