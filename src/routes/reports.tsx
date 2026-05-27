@@ -1103,7 +1103,10 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
   const [month, setMonth] = useState<number>(defaultMonth);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string>("");
+  const [summary, setSummary] = useState<string>("");
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const runFn = useServerFn(generateSmartSuggestions);
+  const runSummary = useServerFn(generateAutoSummary);
 
   const computeStats = (m: number) => {
     const slotKeys = SLOTS.map((s) => s.key as "slot_10" | "slot_11" | "slot_14");
@@ -1135,7 +1138,10 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
     });
     const totalVisits = perPerson.reduce((a, r) => a + r.visits, 0);
     const avgAttendance = perPerson.length ? Math.round(perPerson.reduce((a, r) => a + r.attendance, 0) / perPerson.length) : 0;
-    return { perPerson, totalVisits, avgAttendance };
+    const avgPerformance = perPerson.length ? Math.round(perPerson.reduce((a, r) => a + r.performance, 0) / perPerson.length) : 0;
+    const locationsCovered = new Set<string>();
+    inMonth.forEach((e) => { if (e.location) locationsCovered.add(e.location); });
+    return { perPerson, totalVisits, avgAttendance, avgPerformance, locationsCovered: locationsCovered.size };
   };
 
   const handleGenerate = async () => {
