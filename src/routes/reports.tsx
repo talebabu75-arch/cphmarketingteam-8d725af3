@@ -12,7 +12,7 @@ import {
 } from "recharts";
 import { Trophy, TrendingDown, Grid3x3, Target, Sparkles, Loader2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
-import { generateSmartSuggestions } from "@/lib/insights.functions";
+import { generateSmartSuggestions, generateAutoSummary } from "@/lib/insights.functions";
 import { toast } from "sonner";
 
 type Entry = {
@@ -1103,7 +1103,10 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
   const [month, setMonth] = useState<number>(defaultMonth);
   const [loading, setLoading] = useState(false);
   const [suggestions, setSuggestions] = useState<string>("");
+  const [summary, setSummary] = useState<string>("");
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const runFn = useServerFn(generateSmartSuggestions);
+  const runSummary = useServerFn(generateAutoSummary);
 
   const computeStats = (m: number) => {
     const slotKeys = SLOTS.map((s) => s.key as "slot_10" | "slot_11" | "slot_14");
@@ -1135,7 +1138,10 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
     });
     const totalVisits = perPerson.reduce((a, r) => a + r.visits, 0);
     const avgAttendance = perPerson.length ? Math.round(perPerson.reduce((a, r) => a + r.attendance, 0) / perPerson.length) : 0;
-    return { perPerson, totalVisits, avgAttendance };
+    const avgPerformance = perPerson.length ? Math.round(perPerson.reduce((a, r) => a + r.performance, 0) / perPerson.length) : 0;
+    const locationsCovered = new Set<string>();
+    inMonth.forEach((e) => { if (e.location) locationsCovered.add(e.location); });
+    return { perPerson, totalVisits, avgAttendance, avgPerformance, locationsCovered: locationsCovered.size };
   };
 
   const handleGenerate = async () => {
@@ -1189,6 +1195,52 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
     }
   };
 
+  const handleSummary = async () => {
+    const prevMonthDate = new Date(year, month - 1, 1);
+    const prevMonth = prevMonthDate.getMonth();
+    const prevYear = prevMonthDate.getFullYear();
+    if (prevYear !== year) {
+      toast.error("পূর্ববর্তী মাসের ডেটা পাওয়া যাচ্ছে না।");
+      return;
+    }
+    const cur = computeStats(month);
+    const prev = computeStats(prevMonth);
+    const sorted = [...cur.perPerson].sort((a, b) => b.performance - a.performance);
+    const topPerformer = sorted[0]?.name ?? null;
+    const weakestPerformer = sorted.length > 1 ? sorted[sorted.length - 1].name : null;
+
+    setSummaryLoading(true);
+    setSummary("");
+    try {
+      const res = await runSummary({
+        data: {
+          monthLabel: `${MONTH_NAMES[month]} ${year}`,
+          previousMonthLabel: `${MONTH_NAMES[prevMonth]} ${year}`,
+          teamTotals: {
+            totalVisits: cur.totalVisits,
+            previousTotalVisits: prev.totalVisits,
+            avgAttendance: cur.avgAttendance,
+            previousAvgAttendance: prev.avgAttendance,
+            avgPerformance: cur.avgPerformance,
+            previousAvgPerformance: prev.avgPerformance,
+            locationsCovered: cur.locationsCovered,
+            previousLocationsCovered: prev.locationsCovered,
+          },
+          topPerformer,
+          weakestPerformer,
+        },
+      });
+      setSummary(res.summary);
+    } catch (e: any) {
+      const msg = String(e?.message ?? e);
+      if (msg.includes("429")) toast.error("Rate limit — একটু পর আবার চেষ্টা করুন।");
+      else if (msg.includes("402")) toast.error("AI credit শেষ — Workspace settings থেকে credit যোগ করুন।");
+      else toast.error("Summary তৈরি করা যায়নি: " + msg);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -1217,6 +1269,34 @@ function SmartSuggestionsTab({ entries, persons, year }: { entries: Entry[]; per
             {loading ? "তৈরি হচ্ছে…" : "Suggestions তৈরি করুন"}
           </button>
         </div>
+      </div>
+
+      {/* Auto Report Summary */}
+      <div className="rounded-xl border bg-gradient-to-br from-primary/5 to-card shadow-sm p-5">
+        <div className="flex items-center justify-between gap-2 mb-3 flex-wrap">
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <Sparkles className="size-4 text-primary" /> Auto Report Summary
+          </h3>
+          <button
+            onClick={handleSummary}
+            disabled={summaryLoading || persons.length === 0}
+            className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-xs hover:bg-accent disabled:opacity-50"
+          >
+            {summaryLoading ? <Loader2 className="size-3 animate-spin" /> : <Sparkles className="size-3" />}
+            {summaryLoading ? "লেখা হচ্ছে…" : summary ? "Regenerate" : "Summary তৈরি করুন"}
+          </button>
+        </div>
+        {summaryLoading && (
+          <p className="text-sm text-muted-foreground">AI executive summary লিখছে…</p>
+        )}
+        {!summaryLoading && !summary && (
+          <p className="text-sm text-muted-foreground">
+            এক-প্যারাগ্রাফের executive summary — যেমন "This month overall performance improved by 12%"।
+          </p>
+        )}
+        {!summaryLoading && summary && (
+          <p className="text-sm leading-relaxed whitespace-pre-wrap">{summary}</p>
+        )}
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm p-5 min-h-[200px]">

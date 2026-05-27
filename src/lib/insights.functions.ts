@@ -63,3 +63,58 @@ ${data.persons
 
     return { suggestions: text.trim() };
   });
+
+/* ---------- Auto Report Summary ---------- */
+const SummaryInput = z.object({
+  monthLabel: z.string(),
+  previousMonthLabel: z.string(),
+  teamTotals: z.object({
+    totalVisits: z.number(),
+    previousTotalVisits: z.number(),
+    avgAttendance: z.number(),
+    previousAvgAttendance: z.number(),
+    avgPerformance: z.number(),
+    previousAvgPerformance: z.number(),
+    locationsCovered: z.number(),
+    previousLocationsCovered: z.number(),
+  }),
+  topPerformer: z.string().nullable(),
+  weakestPerformer: z.string().nullable(),
+});
+
+export const generateAutoSummary = createServerFn({ method: "POST" })
+  .inputValidator((data: unknown) => SummaryInput.parse(data))
+  .handler(async ({ data }) => {
+    const apiKey = process.env.LOVABLE_API_KEY;
+    if (!apiKey) throw new Error("LOVABLE_API_KEY missing");
+
+    const gateway = createLovableAiGatewayProvider(apiKey);
+    const model = gateway("google/gemini-3-flash-preview");
+
+    const system =
+      "তুমি একজন executive analyst। ২-৪ বাক্যে একটি executive summary লেখো বাংলায়। " +
+      "প্রথম বাক্যে overall performance কত % বেড়েছে/কমেছে সেটা স্পষ্টভাবে বলো " +
+      '(উদাহরণ: "This month overall performance improved by 12%")। ' +
+      "তারপর সবচেয়ে গুরুত্বপূর্ণ ২টি observation (top performer, weak area, attendance trend ইত্যাদি)। " +
+      "Markdown বা bullet নয় — শুধু paragraph। সংক্ষিপ্ত এবং পেশাদার।";
+
+    const t = data.teamTotals;
+    const pctChange = (cur: number, prev: number) =>
+      prev === 0 ? (cur > 0 ? 100 : 0) : Math.round(((cur - prev) / prev) * 100);
+
+    const prompt = `Month: ${data.monthLabel} vs ${data.previousMonthLabel}
+
+Team metrics:
+- Total Visits: ${t.totalVisits} (prev ${t.previousTotalVisits}, change ${pctChange(t.totalVisits, t.previousTotalVisits)}%)
+- Avg Attendance: ${t.avgAttendance}% (prev ${t.previousAvgAttendance}%, change ${t.avgAttendance - t.previousAvgAttendance} pp)
+- Avg Performance: ${t.avgPerformance}% (prev ${t.previousAvgPerformance}%, change ${t.avgPerformance - t.previousAvgPerformance} pp)
+- Locations Covered: ${t.locationsCovered} (prev ${t.previousLocationsCovered})
+- Top performer: ${data.topPerformer ?? "N/A"}
+- Weakest performer: ${data.weakestPerformer ?? "N/A"}
+
+উপরের ডেটা থেকে executive summary লেখো।`;
+
+    const { text } = await generateText({ model, system, prompt });
+    return { summary: text.trim() };
+  });
+
