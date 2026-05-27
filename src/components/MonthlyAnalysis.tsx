@@ -31,28 +31,34 @@ export function MonthlyAnalysis({
   persons: string[];
   monthName: string;
 }) {
-  const { perPerson, totals, totalSlots } = useMemo(() => {
+  const { perPerson, totals, totalSlots, extraDoffPerPerson } = useMemo(() => {
     const perPerson: Record<string, Record<string, number>> = {};
     const totals: Record<string, number> = {};
+    const extraDoffPerPerson: Record<string, number> = {};
     STATUSES.forEach((s) => (totals[s] = 0));
     persons.forEach((p) => {
       perPerson[p] = {};
       STATUSES.forEach((s) => (perPerson[p][s] = 0));
+      extraDoffPerPerson[p] = 0;
     });
 
     let totalSlots = 0;
     entries.forEach((e) => {
       if (!perPerson[e.person]) return;
+      let dayDoff = 0;
       SLOTS.forEach((s) => {
         const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
         if (v && STATUSES.includes(v as any)) {
           perPerson[e.person][v] += 1;
           totals[v] += 1;
           totalSlots += 1;
+          if (v === "D.off") dayDoff += 1;
         }
       });
+      // Per day, 1 D.off is allowed (neutral). Extras count as penalty.
+      if (dayDoff > 1) extraDoffPerPerson[e.person] += dayDoff - 1;
     });
-    return { perPerson, totals, totalSlots };
+    return { perPerson, totals, totalSlots, extraDoffPerPerson };
   }, [entries, persons]);
 
   const barData = persons.map((p) => ({
@@ -64,16 +70,17 @@ export function MonthlyAnalysis({
     (d) => d.value > 0,
   );
 
-  // Performance score: Yes counts positive; No and L.off reduce the percentage
+  // Performance score: Yes positive; No, L.off, and extra D.off (>1/day) reduce score
   const performance = persons.map((p) => {
     const c = perPerson[p];
     const total = STATUSES.reduce((a, s) => a + c[s], 0);
     const yes = c["Yes"] ?? 0;
     const no = c["No"] ?? 0;
     const loff = c["L.off"] ?? 0;
-    const denom = yes + no + loff;
+    const extraDoff = extraDoffPerPerson[p] ?? 0;
+    const denom = yes + no + loff + extraDoff;
     const score = denom > 0 ? Math.round((yes / denom) * 100) : 0;
-    return { name: p, yes, no, total, score };
+    return { name: p, yes, no, total, score, extraDoff };
   }).sort((a, b) => b.score - a.score);
 
   const [mounted, setMounted] = useState(false);
@@ -160,7 +167,7 @@ export function MonthlyAnalysis({
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b">
           <h3 className="text-sm font-medium">Performance Ranking</h3>
-          <p className="text-xs text-muted-foreground">Score = Yes / (Yes + No + L.off) × 100</p>
+          <p className="text-xs text-muted-foreground">Score = Yes / (Yes + No + L.off + Extra D.off) × 100 • দিনে ১ এর বেশি D.off পেনাল্টি হিসেবে গণনা হয়</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
