@@ -8,7 +8,7 @@ export const LOCATIONS = [
   "Debidwer", "Chandina", "Mudafforgonj", "Mohammad Ali",
 ];
 
-export const STATUSES = ["Yes", "D.off", "L.off", "Off day"] as const;
+export const STATUSES = ["Yes", "No", "D.off", "L.off", "Off day"] as const;
 export type Status = (typeof STATUSES)[number];
 
 export const SLOTS = [
@@ -22,6 +22,7 @@ export type SlotKey = (typeof SLOTS)[number]["key"];
 export function statusClass(s: string | null | undefined) {
   switch (s) {
     case "Yes": return "bg-status-yes text-status-yes-foreground";
+    case "No": return "bg-status-no text-status-no-foreground";
     case "D.off": return "bg-status-doff text-status-doff-foreground";
     case "L.off": return "bg-status-loff text-status-loff-foreground";
     case "Off day": return "bg-status-off text-status-off-foreground";

@@ -149,6 +149,7 @@ export function MonitoringTable() {
 
     const statusColors: Record<string, [number, number, number]> = {
       "Yes": [187, 247, 208],
+      "No": [254, 165, 165],
       "D.off": [254, 215, 170],
       "L.off": [191, 219, 254],
       "Off day": [254, 202, 202],
