@@ -199,6 +199,40 @@ export function MonitoringTable() {
       },
     });
 
+    // Signature footer on the last page
+    const finalY = (doc as any).lastAutoTable?.finalY ?? 105;
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const sigLabels = ["Prepared By", "Marketing Manager", "Manager"];
+    const sigBlockHeight = 70;
+    let sigY = finalY + 40;
+    if (sigY + sigBlockHeight > pageHeight - 30) {
+      doc.addPage();
+      sigY = 80;
+    }
+
+    const margin = 60;
+    const usable = pageWidth - margin * 2;
+    const slot = usable / sigLabels.length;
+    const lineWidth = 160;
+
+    doc.setDrawColor(60, 60, 60);
+    doc.setLineWidth(0.6);
+    doc.setTextColor(30, 30, 30);
+
+    sigLabels.forEach((label, i) => {
+      const cx = margin + slot * i + slot / 2;
+      const lineY = sigY + 30;
+      doc.line(cx - lineWidth / 2, lineY, cx + lineWidth / 2, lineY);
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.text(label, cx, lineY + 16, { align: "center" });
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
+      doc.setTextColor(110, 110, 110);
+      doc.text("(Signature & Date)", cx, lineY + 30, { align: "center" });
+      doc.setTextColor(30, 30, 30);
+    });
+
     doc.save(`monitoring-${year}-${String(month + 1).padStart(2, "0")}.pdf`);
   }
 
