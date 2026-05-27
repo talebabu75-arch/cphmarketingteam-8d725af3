@@ -260,6 +260,14 @@ export function MonitoringTable() {
           </table>
         </div>
       </div>
+
+      <ManageListsDialog
+        open={manageOpen}
+        onClose={() => setManageOpen(false)}
+        persons={personItems}
+        locations={locationItems}
+        onChanged={refreshLists}
+      />
     </section>
   );
 }
