@@ -315,9 +315,26 @@ export function MonitoringTable() {
           <button onClick={downloadPdf} className="ml-2 rounded-md border bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90 transition">
             Download PDF
           </button>
+          <button onClick={downloadExcel} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+            Download Excel
+          </button>
+          <label className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition cursor-pointer">
+            Import Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) handleImportExcel(f);
+                e.target.value = "";
+              }}
+            />
+          </label>
           <button onClick={() => setManageOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
             Manage Lists
           </button>
+
         </div>
         <Legend />
       </div>
