@@ -512,8 +512,15 @@ export function MonitoringTable() {
               )}
             </tbody>
           </table>
-        </div>
       </div>
+
+      <MonthlyAnalysis
+        entries={Array.from(entries.values())}
+        persons={PERSONS}
+        monthName={monthName}
+      />
+
+
 
       <ManageListsDialog
         open={manageOpen}
