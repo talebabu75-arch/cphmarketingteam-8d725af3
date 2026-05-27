@@ -30,6 +30,8 @@
   --color-ring: var(--ring);
   --color-status-yes: var(--status-yes);
   --color-status-yes-foreground: var(--status-yes-foreground);
+  --color-status-no: var(--status-no);
+  --color-status-no-foreground: var(--status-no-foreground);
   --color-status-doff: var(--status-doff);
   --color-status-doff-foreground: var(--status-doff-foreground);
   --color-status-loff: var(--status-loff);
