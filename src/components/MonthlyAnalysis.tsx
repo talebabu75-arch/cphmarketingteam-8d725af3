@@ -31,28 +31,34 @@ export function MonthlyAnalysis({
   persons: string[];
   monthName: string;
 }) {
-  const { perPerson, totals, totalSlots } = useMemo(() => {
+  const { perPerson, totals, totalSlots, extraDoffPerPerson } = useMemo(() => {
     const perPerson: Record<string, Record<string, number>> = {};
     const totals: Record<string, number> = {};
+    const extraDoffPerPerson: Record<string, number> = {};
     STATUSES.forEach((s) => (totals[s] = 0));
     persons.forEach((p) => {
       perPerson[p] = {};
       STATUSES.forEach((s) => (perPerson[p][s] = 0));
+      extraDoffPerPerson[p] = 0;
     });
 
     let totalSlots = 0;
     entries.forEach((e) => {
       if (!perPerson[e.person]) return;
+      let dayDoff = 0;
       SLOTS.forEach((s) => {
         const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
         if (v && STATUSES.includes(v as any)) {
           perPerson[e.person][v] += 1;
           totals[v] += 1;
           totalSlots += 1;
+          if (v === "D.off") dayDoff += 1;
         }
       });
+      // Per day, 1 D.off is allowed (neutral). Extras count as penalty.
+      if (dayDoff > 1) extraDoffPerPerson[e.person] += dayDoff - 1;
     });
-    return { perPerson, totals, totalSlots };
+    return { perPerson, totals, totalSlots, extraDoffPerPerson };
   }, [entries, persons]);
 
   const barData = persons.map((p) => ({
