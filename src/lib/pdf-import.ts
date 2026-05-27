@@ -59,8 +59,9 @@ function parseTitle(rows: Cell[][]): { year: number; month: number } | null {
 }
 
 export async function parseMonitoringPdf(file: File, persons: string[]): Promise<ParsedEntry[]> {
+  const pdfjsLib = await loadPdfJs();
   const buf = await file.arrayBuffer();
-  const pdf = await (pdfjsLib as any).getDocument({ data: buf }).promise;
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
 
   const allRows: Cell[][] = [];
   for (let p = 1; p <= pdf.numPages; p++) {
