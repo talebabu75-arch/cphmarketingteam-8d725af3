@@ -304,6 +304,38 @@ export function MonitoringTable() {
     }
   }
 
+  async function handleImportPdf(file: File) {
+    try {
+      toast.message("PDF পড়া হচ্ছে…");
+      const payload = await parseMonitoringPdf(file, PERSONS);
+      if (payload.length === 0) {
+        toast.error("PDF থেকে কোনো রো পাওয়া যায়নি");
+        return;
+      }
+      toast.message(`${payload.length}টি রো import হচ্ছে…`);
+      const { error } = await supabase
+        .from("monitoring_entries")
+        .upsert(payload, { onConflict: "entry_date,person" });
+      if (error) {
+        toast.error(`Import failed: ${error.message}`);
+        return;
+      }
+      toast.success(`${payload.length}টি রো সফলভাবে import হয়েছে`);
+      const { data } = await supabase
+        .from("monitoring_entries")
+        .select("*")
+        .gte("entry_date", monthStart)
+        .lte("entry_date", monthEnd);
+      const map = new Map<CellKey, Entry>();
+      (data ?? []).forEach((row: any) => map.set(`${row.entry_date}|${row.person}`, row as Entry));
+      setEntries(map);
+    } catch (e: any) {
+      toast.error(`PDF parse error: ${e.message ?? e}`);
+    }
+  }
+
+
+
 
 
   return (
