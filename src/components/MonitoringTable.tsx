@@ -2,6 +2,8 @@ import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LOCATIONS, PERSONS, SLOTS, STATUSES, statusClass, type SlotKey } from "@/lib/dashboard-config";
 import { toast } from "sonner";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 type Entry = {
   id?: string;
