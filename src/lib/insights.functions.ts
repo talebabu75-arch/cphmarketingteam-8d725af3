@@ -85,6 +85,7 @@ const SummaryInput = z.object({
 });
 
 export const generateAutoSummary = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => SummaryInput.parse(data))
   .handler(async ({ data }) => {
     const apiKey = process.env.LOVABLE_API_KEY;
