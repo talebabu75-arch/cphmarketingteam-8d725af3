@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { LOCATIONS, PERSONS, SLOTS, STATUSES, statusClass, type SlotKey } from "@/lib/dashboard-config";
 import { toast } from "sonner";
@@ -140,12 +140,12 @@ export function MonitoringTable() {
               </tr>
               <tr>
                 {PERSONS.map((p) => (
-                  <>
-                    <th key={p + "loc"} className="bg-primary/90 text-primary-foreground/90 px-2 py-1.5 font-normal text-[11px] border-l border-primary/40 min-w-[140px]">Location</th>
+                  <Fragment key={p}>
+                    <th className="bg-primary/90 text-primary-foreground/90 px-2 py-1.5 font-normal text-[11px] border-l border-primary/40 min-w-[140px]">Location</th>
                     {SLOTS.map((s) => (
-                      <th key={p + s.key} className="bg-primary/90 text-primary-foreground/90 px-2 py-1.5 font-normal text-[11px] min-w-[88px]">{s.label}</th>
+                      <th key={s.key} className="bg-primary/90 text-primary-foreground/90 px-2 py-1.5 font-normal text-[11px] min-w-[88px]">{s.label}</th>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </tr>
             </thead>
