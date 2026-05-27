@@ -152,6 +152,9 @@ function ReportsPage() {
           <TabsContent value="analytics">
             <AnalyticsTab entries={entries} persons={persons.map((p) => p.name)} year={year} />
           </TabsContent>
+          <TabsContent value="kpi">
+            <KpiTab entries={entries} persons={persons.map((p) => p.name)} year={year} />
+          </TabsContent>
         </Tabs>
       </div>
     </main>
