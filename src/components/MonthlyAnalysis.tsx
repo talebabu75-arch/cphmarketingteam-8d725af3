@@ -46,20 +46,30 @@ export function MonthlyAnalysis({
     entries.forEach((e) => {
       if (!perPerson[e.person]) return;
       let dayDoff = 0;
+      const slotVals: string[] = [];
       SLOTS.forEach((s) => {
         const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
-        if (v && STATUSES.includes(v as any)) {
-          perPerson[e.person][v] += 1;
-          totals[v] += 1;
-          totalSlots += 1;
-          if (v === "D.off") dayDoff += 1;
-        }
+        if (v && STATUSES.includes(v as any)) slotVals.push(v);
       });
+      const allOffDay = slotVals.length === SLOTS.length && slotVals.every((v) => v === "Off day");
+      slotVals.forEach((v) => {
+        if (allOffDay && v === "Off day") return; // collapse: count once below
+        perPerson[e.person][v] += 1;
+        totals[v] += 1;
+        totalSlots += 1;
+        if (v === "D.off") dayDoff += 1;
+      });
+      if (allOffDay) {
+        perPerson[e.person]["Off day"] += 1;
+        totals["Off day"] += 1;
+        totalSlots += 1;
+      }
       // Per day, 1 D.off is allowed (neutral). Extras count as penalty.
       if (dayDoff > 1) extraDoffPerPerson[e.person] += dayDoff - 1;
     });
     return { perPerson, totals, totalSlots, extraDoffPerPerson };
   }, [entries, persons]);
+
 
   const barData = persons.map((p) => ({
     name: p,
