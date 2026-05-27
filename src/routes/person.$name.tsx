@@ -85,17 +85,26 @@ function PersonProfile() {
     const locationCount: Record<string, number> = {};
     filtered.forEach((e) => {
       let dayDoff = 0;
+      const slotVals: string[] = [];
       SLOTS.forEach((s) => {
         const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
-        if (v && STATUSES.includes(v as any)) {
-          counts[v] += 1;
-          totalSlots += 1;
-          if (v === "D.off") dayDoff += 1;
-        }
+        if (v && STATUSES.includes(v as any)) slotVals.push(v);
       });
+      const allOffDay = slotVals.length === SLOTS.length && slotVals.every((v) => v === "Off day");
+      slotVals.forEach((v) => {
+        if (allOffDay && v === "Off day") return;
+        counts[v] += 1;
+        totalSlots += 1;
+        if (v === "D.off") dayDoff += 1;
+      });
+      if (allOffDay) {
+        counts["Off day"] += 1;
+        totalSlots += 1;
+      }
       if (dayDoff > 1) extraDoff += dayDoff - 1;
       if (e.location) locationCount[e.location] = (locationCount[e.location] ?? 0) + 1;
     });
+
     const yes = counts["Yes"] ?? 0;
     const no = counts["No"] ?? 0;
     const loff = counts["L.off"] ?? 0;
