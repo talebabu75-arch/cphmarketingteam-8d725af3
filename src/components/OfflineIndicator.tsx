@@ -43,7 +43,8 @@ export function OfflineIndicator() {
     }
   };
 
-  // Hide when fully online & nothing pending
+  // Hide during SSR/before mount, and when fully online & nothing pending
+  if (!mounted) return null;
   if (online && pending === 0 && !syncing) return null;
 
   const cls = !online
