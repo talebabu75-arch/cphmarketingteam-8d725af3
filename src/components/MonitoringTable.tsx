@@ -622,6 +622,9 @@ export function MonitoringTable() {
           <button onClick={() => setPersonReportOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
             Person Report
           </button>
+          <button onClick={() => setRangeOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
+            Date Range Report
+          </button>
           <label className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition cursor-pointer">
             Import Excel
             <input
