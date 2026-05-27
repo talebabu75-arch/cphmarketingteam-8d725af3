@@ -47,16 +47,12 @@ function Index() {
     <main className="min-h-screen">
       <header className="border-b bg-card/80 backdrop-blur sticky top-0 z-40">
         <div className="max-w-[1600px] mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <img
-              src={new URL("../assets/company-logo.png", import.meta.url).href}
+              src={new URL("../assets/company-banner.png", import.meta.url).href}
               alt="Cumilla People's Hospital"
-              className="size-10 object-contain"
+              className="h-12 sm:h-14 w-auto object-contain"
             />
-            <div>
-              <h1 className="text-lg font-semibold tracking-tight">Cumilla People's Hospital</h1>
-              <p className="text-xs text-muted-foreground">Marketing Monitoring — Daily tracker</p>
-            </div>
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground hidden sm:inline">{email}</span>
