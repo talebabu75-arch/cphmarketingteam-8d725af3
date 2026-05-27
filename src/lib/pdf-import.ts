@@ -97,7 +97,7 @@ export async function parseMonitoringPdf(file: File, persons: string[]): Promise
   if (personPositions.length === 0) throw new Error("Person column পাওয়া যায়নি");
 
   // Sub-header row with Location + slot labels
-  const slotLabels = SLOTS.map((s) => s.label);
+  const slotLabels: string[] = SLOTS.map((s) => s.label);
   let subHeader: Cell[] | null = null;
   for (const r of allRows) {
     const texts = r.map((c) => c.text);
