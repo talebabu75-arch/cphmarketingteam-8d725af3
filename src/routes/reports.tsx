@@ -3,7 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SLOTS, STATUSES, statusClass } from "@/lib/dashboard-config";
 import { useDashboardLists } from "@/lib/use-lists";
-import { ArrowLeft, FileText, Download } from "lucide-react";
+import { ArrowLeft, FileText, Download, FileDown } from "lucide-react";
+import { generateReportPDF } from "@/lib/pdf-report";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
@@ -173,6 +174,28 @@ function PersonReport({ entries, persons, year }: { entries: Entry[]; persons: s
     downloadCSV(`person-report-${year}.csv`, [header, ...body]);
   };
 
+  const handlePDF = () => {
+    const topPerformer = rows[0]?.name ?? "—";
+    const avgScore = rows.length ? Math.round(rows.reduce((a, r) => a + r.score, 0) / rows.length) : 0;
+    const totalVisits = rows.reduce((a, r) => a + ((r as any)["Yes"] ?? 0), 0);
+    generateReportPDF({
+      title: "Person-wise Annual Report",
+      subtitle: `Performance summary for the year ${year}`,
+      summary: [
+        { label: "Total Staff", value: rows.length },
+        { label: "Top Performer", value: topPerformer },
+        { label: "Avg Score", value: `${avgScore}%` },
+        { label: "Total Visits", value: totalVisits },
+      ],
+      sections: [{
+        title: "Performance Ranking",
+        head: ["#", "Name", ...STATUSES, "Extra D.off", "Days", "Score %"],
+        body: rows.map((r, i) => [i + 1, r.name, ...STATUSES.map((s) => (r as any)[s] || "-"), r.extra || "-", r.days, `${r.score}%`]),
+      }],
+      filename: `person-report-${year}.pdf`,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -180,9 +203,14 @@ function PersonReport({ entries, persons, year }: { entries: Entry[]; persons: s
           <h2 className="text-xl font-semibold">Person-wise Annual Report</h2>
           <p className="text-sm text-muted-foreground">প্রতিটি পার্সনের {year} সালের সম্পূর্ণ পারফর্মেন্স</p>
         </div>
-        <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
-          <Download className="size-3.5" /> Export CSV
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handlePDF} className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90">
+            <FileDown className="size-3.5" /> One-Click PDF
+          </button>
+          <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
+            <Download className="size-3.5" /> CSV
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm p-4">
@@ -254,6 +282,35 @@ function DailyReport({ entries, persons }: { entries: Entry[]; persons: string[]
     downloadCSV(`daily-report-${date}.csv`, [header, ...body]);
   };
 
+  const handlePDF = () => {
+    let present = 0, leave = 0, visits = 0;
+    dayEntries.forEach((e) => {
+      const vals = SLOTS.map((s) => e[s.key as "slot_10" | "slot_11" | "slot_14"]).filter((v): v is string => !!v);
+      if (vals.includes("Yes")) present += 1;
+      else if (vals.includes("L.off") || vals.every((v) => v === "Off day")) leave += 1;
+      vals.forEach((v) => { if (v === "Yes") visits += 1; });
+    });
+    generateReportPDF({
+      title: "Daily Activity Report",
+      subtitle: `Date: ${new Date(date).toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" })}`,
+      summary: [
+        { label: "Total Staff", value: persons.length },
+        { label: "Present", value: present },
+        { label: "On Leave", value: leave },
+        { label: "Total Visits", value: visits },
+      ],
+      sections: [{
+        title: "Daily Status by Person",
+        head: ["Person", "Location", ...SLOTS.map((s) => s.label)],
+        body: persons.map((p) => {
+          const e = dayEntries.find((x) => x.person === p);
+          return [p, e?.location ?? "-", ...SLOTS.map((s) => e?.[s.key as "slot_10" | "slot_11" | "slot_14"] ?? "-")];
+        }),
+      }],
+      filename: `daily-report-${date}.pdf`,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -261,15 +318,18 @@ function DailyReport({ entries, persons }: { entries: Entry[]; persons: string[]
           <h2 className="text-xl font-semibold">Daily Report</h2>
           <p className="text-sm text-muted-foreground">নির্দিষ্ট দিনের বিস্তারিত রিপোর্ট</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <input
             type="date"
             value={date}
             onChange={(e) => setDate(e.target.value)}
             className="rounded-md border bg-card px-3 py-1.5 text-sm"
           />
+          <button onClick={handlePDF} className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90">
+            <FileDown className="size-3.5" /> One-Click PDF
+          </button>
           <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
-            <Download className="size-3.5" /> Export
+            <Download className="size-3.5" /> CSV
           </button>
         </div>
       </div>
@@ -349,6 +409,28 @@ function WeeklyReport({ entries, persons, year }: { entries: Entry[]; persons: s
     downloadCSV(`weekly-report-${start}_${end}.csv`, [header, ...body]);
   };
 
+  const handlePDF = () => {
+    const topPerformer = rows[0]?.name ?? "—";
+    const avgScore = rows.length ? Math.round(rows.reduce((a, r) => a + r.score, 0) / rows.length) : 0;
+    const totalVisits = rows.reduce((a, r) => a + ((r as any)["Yes"] ?? 0), 0);
+    generateReportPDF({
+      title: "Weekly Performance Report",
+      subtitle: `${label} • Year ${year}`,
+      summary: [
+        { label: "Top Performer", value: topPerformer },
+        { label: "Avg Score", value: `${avgScore}%` },
+        { label: "Total Visits", value: totalVisits },
+        { label: "Active Days", value: rows.reduce((a, r) => a + r.days, 0) },
+      ],
+      sections: [{
+        title: "Weekly Performance Ranking",
+        head: ["Name", ...STATUSES, "Extra D.off", "Days", "Score %"],
+        body: rows.map((r) => [r.name, ...STATUSES.map((s) => (r as any)[s] || "-"), r.extra || "-", r.days, `${r.score}%`]),
+      }],
+      filename: `weekly-report-${start}_${end}.pdf`,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -356,12 +438,15 @@ function WeeklyReport({ entries, persons, year }: { entries: Entry[]; persons: s
           <h2 className="text-xl font-semibold">Weekly Report</h2>
           <p className="text-sm text-muted-foreground">{label} ({year})</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <button onClick={() => setWeekOffset(weekOffset - 1)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">← Prev</button>
           <button onClick={() => setWeekOffset(0)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">This Week</button>
           <button onClick={() => setWeekOffset(weekOffset + 1)} disabled={weekOffset >= 0} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent disabled:opacity-40">Next →</button>
+          <button onClick={handlePDF} className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90">
+            <FileDown className="size-3.5" /> PDF
+          </button>
           <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
-            <Download className="size-3.5" /> Export
+            <Download className="size-3.5" /> CSV
           </button>
         </div>
       </div>
@@ -453,6 +538,33 @@ function MonthlyComparison({ entries, persons, year }: { entries: Entry[]; perso
     downloadCSV(`monthly-comparison-${year}.csv`, [header, ...body]);
   };
 
+  const handlePDF = () => {
+    const totalVisits = data.reduce((a, d) => a + d.__visits, 0);
+    const bestMonth = data.reduce((a, d) => (d.__visits > a.__visits ? d : a), data[0]);
+    const personAvg = persons.map((p) => {
+      const scores = data.map((d) => d[p]).filter((v) => v > 0);
+      const avg = scores.length ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : 0;
+      return { p, avg };
+    });
+    const topPerson = personAvg.sort((a, b) => b.avg - a.avg)[0];
+    generateReportPDF({
+      title: "Monthly Comparison Report",
+      subtitle: `12-month performance breakdown for ${year}`,
+      summary: [
+        { label: "Total Visits", value: totalVisits },
+        { label: "Best Month", value: bestMonth?.month ?? "—" },
+        { label: "Top Performer", value: topPerson?.p ?? "—" },
+        { label: "Avg Score", value: `${topPerson?.avg ?? 0}%` },
+      ],
+      sections: [{
+        title: "Monthly Performance Score (%)",
+        head: ["Month", ...persons, "Visits"],
+        body: data.map((d) => [d.month, ...persons.map((p) => (d[p] ? `${d[p]}%` : "-")), d.__visits]),
+      }],
+      filename: `monthly-comparison-${year}.pdf`,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -460,9 +572,14 @@ function MonthlyComparison({ entries, persons, year }: { entries: Entry[]; perso
           <h2 className="text-xl font-semibold">Monthly Comparison</h2>
           <p className="text-sm text-muted-foreground">{year} সালের ১২ মাসের পারফর্মেন্স তুলনা</p>
         </div>
-        <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
-          <Download className="size-3.5" /> Export
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={handlePDF} className="inline-flex items-center gap-1.5 rounded-md bg-primary text-primary-foreground px-3 py-1.5 text-sm hover:opacity-90">
+            <FileDown className="size-3.5" /> One-Click PDF
+          </button>
+          <button onClick={handleExport} className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent">
+            <Download className="size-3.5" /> CSV
+          </button>
+        </div>
       </div>
 
       <div className="rounded-xl border bg-card shadow-sm p-4">
