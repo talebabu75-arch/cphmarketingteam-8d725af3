@@ -124,7 +124,9 @@ export function MonitoringTable() {
     setYear(d.getFullYear()); setMonth(d.getMonth());
   }
 
-  function downloadPdf() {
+  function downloadPdf(selectedPersons?: string[]) {
+    const personsList = selectedPersons && selectedPersons.length > 0 ? selectedPersons : PERSONS;
+    const isFiltered = selectedPersons && selectedPersons.length > 0 && selectedPersons.length < PERSONS.length;
     const doc = new jsPDF({ orientation: "landscape", unit: "pt", format: "a3" });
     const pageWidth = doc.internal.pageSize.getWidth();
     const monthLabel = new Date(year, month, 1).toLocaleString("en-US", { month: "long", year: "numeric" });
