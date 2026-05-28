@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Cloud, CloudOff, RefreshCw, CheckCircle2 } from "lucide-react";
-import { flushQueue, queueCount, subscribeQueue } from "@/lib/offline-queue";
+import { Cloud, CloudOff, RefreshCw, CheckCircle2, X } from "lucide-react";
+import { flushQueue, queueCount, subscribeQueue, clearQueue } from "@/lib/offline-queue";
 import { toast } from "sonner";
 
 export function OfflineIndicator() {
