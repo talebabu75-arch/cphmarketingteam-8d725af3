@@ -26,16 +26,30 @@ export function useDashboardLists() {
   return { persons, locations, loading, refresh };
 }
 
-export async function addItem(table: "dashboard_persons" | "dashboard_locations", name: string) {
+export async function addItem(
+  table: "dashboard_persons" | "dashboard_locations",
+  name: string,
+): Promise<boolean> {
   const trimmed = name.trim();
-  if (!trimmed) return;
-  const { error } = await supabase.from(table).insert({ name: trimmed, sort_order: 999 });
-  if (error) toast.error(error.message);
-  else toast.success("Added");
+  if (!trimmed) {
+    toast.error("নাম খালি রাখা যাবে না");
+    return false;
+  }
+  const { error } = await supabase
+    .from(table)
+    .insert({ name: trimmed, sort_order: 999 })
+    .select()
+    .single();
+  if (error) {
+    toast.error(`Add failed: ${error.message}`);
+    return false;
+  }
+  toast.success("Added");
+  return true;
 }
 
 export async function removeItem(table: "dashboard_persons" | "dashboard_locations", id: string) {
   const { error } = await supabase.from(table).delete().eq("id", id);
-  if (error) toast.error(error.message);
+  if (error) toast.error(`Remove failed: ${error.message}`);
   else toast.success("Removed");
 }

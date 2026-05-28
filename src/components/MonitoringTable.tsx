@@ -144,7 +144,7 @@ export function MonitoringTable() {
         m.set(key, data as Entry);
         return m;
       });
-    }, 400);
+    }, 150);
     savingRef.current.set(key, t);
   }
 
