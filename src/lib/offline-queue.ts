@@ -1,9 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const MAX_ATTEMPTS = 3;
+
 /** A queued monitoring_entries upsert that couldn't reach the server. */
 export type QueuedEntry = {
   id: string; // local uuid
   queued_at: number;
+  attempts?: number;
+  last_error?: string;
   payload: {
     entry_date: string;
     person: string;
