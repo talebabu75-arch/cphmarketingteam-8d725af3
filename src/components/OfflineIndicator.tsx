@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { Cloud, CloudOff, RefreshCw, CheckCircle2 } from "lucide-react";
-import { flushQueue, queueCount, subscribeQueue } from "@/lib/offline-queue";
+import { Cloud, CloudOff, RefreshCw, CheckCircle2, X } from "lucide-react";
+import { flushQueue, queueCount, subscribeQueue, clearQueue } from "@/lib/offline-queue";
 import { toast } from "sonner";
 
 export function OfflineIndicator() {
@@ -54,31 +54,45 @@ export function OfflineIndicator() {
       : "border-emerald-300 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-900 dark:text-emerald-300";
 
   return (
-    <button
-      onClick={handleSync}
-      title={
-        !online
-          ? "Offline — data local এ save হচ্ছে"
+    <div className={`inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-medium ${cls}`}>
+      <button
+        onClick={handleSync}
+        title={
+          !online
+            ? "Offline — data local এ save হচ্ছে"
+            : pending > 0
+              ? "Pending entries sync করতে ক্লিক করুন"
+              : "Synced"
+        }
+        className="inline-flex items-center gap-1.5"
+      >
+        {syncing ? (
+          <RefreshCw className="size-3 animate-spin" />
+        ) : !online ? (
+          <CloudOff className="size-3" />
+        ) : pending > 0 ? (
+          <Cloud className="size-3" />
+        ) : (
+          <CheckCircle2 className="size-3" />
+        )}
+        {!online
+          ? `Offline${pending ? ` · ${pending}` : ""}`
           : pending > 0
-            ? "Pending entries sync করতে ক্লিক করুন"
-            : "Synced"
-      }
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${cls}`}
-    >
-      {syncing ? (
-        <RefreshCw className="size-3 animate-spin" />
-      ) : !online ? (
-        <CloudOff className="size-3" />
-      ) : pending > 0 ? (
-        <Cloud className="size-3" />
-      ) : (
-        <CheckCircle2 className="size-3" />
+            ? `${pending} pending`
+            : "Synced"}
+      </button>
+      {online && pending > 0 && !syncing && (
+        <button
+          onClick={() => {
+            clearQueue();
+            toast.message("Pending queue clear করা হলো");
+          }}
+          title="Pending queue clear করুন"
+          className="ml-0.5 rounded-full p-0.5 hover:bg-black/10 dark:hover:bg-white/10"
+        >
+          <X className="size-3" />
+        </button>
       )}
-      {!online
-        ? `Offline${pending ? ` · ${pending}` : ""}`
-        : pending > 0
-          ? `${pending} pending`
-          : "Synced"}
-    </button>
+    </div>
   );
 }

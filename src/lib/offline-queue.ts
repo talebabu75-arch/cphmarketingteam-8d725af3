@@ -1,9 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
 
+const MAX_ATTEMPTS = 3;
+
 /** A queued monitoring_entries upsert that couldn't reach the server. */
 export type QueuedEntry = {
   id: string; // local uuid
   queued_at: number;
+  attempts?: number;
+  last_error?: string;
   payload: {
     entry_date: string;
     person: string;
@@ -90,22 +94,34 @@ export async function flushQueue(): Promise<{
     const remaining: QueuedEntry[] = [];
     let pushed = 0;
     let failed = 0;
+    let dropped = 0;
     for (const item of items) {
       const { error } = await supabase
         .from("monitoring_entries")
         .upsert(item.payload, { onConflict: "entry_date,person" });
       if (error) {
-        failed += 1;
-        remaining.push(item);
+        const attempts = (item.attempts ?? 0) + 1;
+        if (attempts >= MAX_ATTEMPTS) {
+          dropped += 1;
+          console.warn("[offline-queue] dropping entry after max attempts", item, error.message);
+        } else {
+          failed += 1;
+          remaining.push({ ...item, attempts, last_error: error.message });
+        }
       } else {
         pushed += 1;
       }
     }
     write(remaining);
-    return { pushed, failed, remaining: remaining.length };
+    return { pushed, failed: failed + dropped, remaining: remaining.length };
   } finally {
     flushing = false;
   }
+}
+
+/** Manually clear all queued entries (e.g. user-initiated reset). */
+export function clearQueue() {
+  write([]);
 }
 
 /** Wire up window online/offline + periodic flush. Call once at app root. */
