@@ -17,18 +17,18 @@ export function ManageListsDialog({
 
   async function handleAdd(kind: "person" | "location") {
     if (kind === "person") {
-      await addItem("dashboard_persons", newPerson);
-      setNewPerson("");
+      const ok = await addItem("dashboard_persons", newPerson);
+      if (ok) setNewPerson("");
     } else {
-      await addItem("dashboard_locations", newLocation);
-      setNewLocation("");
+      const ok = await addItem("dashboard_locations", newLocation);
+      if (ok) setNewLocation("");
     }
-    onChanged();
+    await onChanged();
   }
 
   async function handleRemove(kind: "person" | "location", id: string) {
     await removeItem(kind === "person" ? "dashboard_persons" : "dashboard_locations", id);
-    onChanged();
+    await onChanged();
   }
 
   return (
