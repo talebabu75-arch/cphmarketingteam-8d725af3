@@ -697,6 +697,18 @@ export function MonitoringTable() {
           <button onClick={() => setManageOpen(true)} className="rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
             Manage Lists
           </button>
+          <button
+            onClick={saveAllPending}
+            disabled={savingNow}
+            className={`rounded-md border px-3 py-1.5 text-sm transition disabled:opacity-50 ${
+              pendingCount > 0
+                ? "bg-amber-500 text-white border-amber-600 hover:bg-amber-600"
+                : "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700"
+            }`}
+            title="সব এন্ট্রি এখনই সেইভ করুন"
+          >
+            {savingNow ? "Saving…" : pendingCount > 0 ? `Save Now (${pendingCount})` : "Saved"}
+          </button>
 
         </div>
         <Legend />
