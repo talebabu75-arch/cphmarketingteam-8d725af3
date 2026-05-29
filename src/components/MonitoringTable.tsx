@@ -69,7 +69,7 @@ export function MonitoringTable() {
     setLoading(true);
     supabase
       .from("monitoring_entries")
-      .select("*")
+      .select("entry_date,person,location,slot_10,slot_11,slot_14")
       .gte("entry_date", monthStart)
       .lte("entry_date", monthEnd)
       .then(({ data, error }) => {
@@ -83,6 +83,32 @@ export function MonitoringTable() {
         setLoading(false);
       });
     return () => { active = false; };
+  }, [monthStart, monthEnd]);
+
+  // Flush pending writes when leaving the month / closing tab / hiding
+  useEffect(() => {
+    const flushAll = () => {
+      const keys = Array.from(pendingRef.current.keys());
+      keys.forEach((k) => { void flushCell(k); });
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (pendingRef.current.size > 0) {
+        flushAll();
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flushAll();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("visibilitychange", onVisibility);
+      flushAll();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthStart, monthEnd]);
 
   const monthName = useMemo(
@@ -115,12 +141,10 @@ export function MonitoringTable() {
     pendingRef.current.set(key, next);
     setPendingCount(pendingRef.current.size);
 
+    // Fire immediately — dropdown changes are discrete, no need to debounce
     const existing = savingRef.current.get(key);
     if (existing) clearTimeout(existing);
-    const t = setTimeout(() => {
-      void flushCell(key);
-    }, 150);
-    savingRef.current.set(key, t);
+    void flushCell(key);
   }
 
   async function flushCell(key: string) {
@@ -148,21 +172,14 @@ export function MonitoringTable() {
       return;
     }
 
-    const { data, error } = await supabase
+    // Fire-and-forget — optimistic UI is already applied; skip return roundtrip
+    const { error } = await supabase
       .from("monitoring_entries")
-      .upsert(payload, { onConflict: "entry_date,person" })
-      .select()
-      .single();
+      .upsert(payload, { onConflict: "entry_date,person" });
     if (error) {
       queueOfflineEntry(payload);
       toast.warning(`Save queued offline: ${error.message}`);
-      return;
     }
-    setEntries((prev) => {
-      const m = new Map(prev);
-      m.set(key as CellKey, data as Entry);
-      return m;
-    });
   }
 
   async function saveAllPending() {

@@ -36,20 +36,31 @@ export function LiveSummaryCards() {
   useEffect(() => {
     const t = todayISO();
     const { start, end } = monthRange();
+    const cols = "entry_date,person,location,slot_10,slot_11,slot_14";
+    let cancelled = false;
     const load = async () => {
       const [a, b] = await Promise.all([
-        supabase.from("monitoring_entries").select("*").eq("entry_date", t),
-        supabase.from("monitoring_entries").select("*").gte("entry_date", start).lte("entry_date", end),
+        supabase.from("monitoring_entries").select(cols).eq("entry_date", t),
+        supabase.from("monitoring_entries").select(cols).gte("entry_date", start).lte("entry_date", end),
       ]);
+      if (cancelled) return;
       setToday((a.data as Entry[]) ?? []);
       setMonth((b.data as Entry[]) ?? []);
     };
     load();
+    // Debounce realtime reloads so rapid edits don't spam fetches
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleLoad = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => { void load(); }, 1500);
+    };
     const ch = supabase
       .channel("live-summary")
-      .on("postgres_changes", { event: "*", schema: "public", table: "monitoring_entries" }, load)
+      .on("postgres_changes", { event: "*", schema: "public", table: "monitoring_entries" }, scheduleLoad)
       .subscribe();
     return () => {
+      cancelled = true;
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(ch);
     };
   }, []);
