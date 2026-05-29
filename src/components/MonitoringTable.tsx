@@ -69,7 +69,7 @@ export function MonitoringTable() {
     setLoading(true);
     supabase
       .from("monitoring_entries")
-      .select("*")
+      .select("entry_date,person,location,slot_10,slot_11,slot_14")
       .gte("entry_date", monthStart)
       .lte("entry_date", monthEnd)
       .then(({ data, error }) => {
@@ -83,6 +83,32 @@ export function MonitoringTable() {
         setLoading(false);
       });
     return () => { active = false; };
+  }, [monthStart, monthEnd]);
+
+  // Flush pending writes when leaving the month / closing tab / hiding
+  useEffect(() => {
+    const flushAll = () => {
+      const keys = Array.from(pendingRef.current.keys());
+      keys.forEach((k) => { void flushCell(k); });
+    };
+    const onBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (pendingRef.current.size > 0) {
+        flushAll();
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") flushAll();
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    document.addEventListener("visibilitychange", onVisibility);
+    return () => {
+      window.removeEventListener("beforeunload", onBeforeUnload);
+      document.removeEventListener("visibilitychange", onVisibility);
+      flushAll();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [monthStart, monthEnd]);
 
   const monthName = useMemo(
