@@ -112,43 +112,72 @@ export function MonitoringTable() {
     const next: Entry = { ...current, [field]: value || null };
     setEntries((prev) => new Map(prev).set(key, next));
 
+    pendingRef.current.set(key, next);
+    setPendingCount(pendingRef.current.size);
+
     const existing = savingRef.current.get(key);
     if (existing) clearTimeout(existing);
-    const t = setTimeout(async () => {
-      const payload = {
-        entry_date: next.entry_date,
-        person: next.person,
-        location: next.location,
-        slot_10: next.slot_10,
-        slot_11: next.slot_11,
-        slot_14: next.slot_14,
-      };
-
-      // Offline → queue immediately, no network call
-      if (typeof navigator !== "undefined" && navigator.onLine === false) {
-        queueOfflineEntry(payload);
-        toast.message("Offline — local এ save করা হলো, online হলে sync হবে");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("monitoring_entries")
-        .upsert(payload, { onConflict: "entry_date,person" })
-        .select()
-        .single();
-      if (error) {
-        // Network / server failure → queue for later
-        queueOfflineEntry(payload);
-        toast.warning(`Save queued offline: ${error.message}`);
-        return;
-      }
-      setEntries((prev) => {
-        const m = new Map(prev);
-        m.set(key, data as Entry);
-        return m;
-      });
+    const t = setTimeout(() => {
+      void flushCell(key);
     }, 150);
     savingRef.current.set(key, t);
+  }
+
+  async function flushCell(key: string) {
+    const next = pendingRef.current.get(key);
+    if (!next) return;
+    const timer = savingRef.current.get(key);
+    if (timer) {
+      clearTimeout(timer);
+      savingRef.current.delete(key);
+    }
+    pendingRef.current.delete(key);
+    setPendingCount(pendingRef.current.size);
+
+    const payload = {
+      entry_date: next.entry_date,
+      person: next.person,
+      location: next.location,
+      slot_10: next.slot_10,
+      slot_11: next.slot_11,
+      slot_14: next.slot_14,
+    };
+
+    if (typeof navigator !== "undefined" && navigator.onLine === false) {
+      queueOfflineEntry(payload);
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("monitoring_entries")
+      .upsert(payload, { onConflict: "entry_date,person" })
+      .select()
+      .single();
+    if (error) {
+      queueOfflineEntry(payload);
+      toast.warning(`Save queued offline: ${error.message}`);
+      return;
+    }
+    setEntries((prev) => {
+      const m = new Map(prev);
+      m.set(key as CellKey, data as Entry);
+      return m;
+    });
+  }
+
+  async function saveAllPending() {
+    const keys = Array.from(pendingRef.current.keys());
+    if (keys.length === 0) {
+      toast.message("সব সেইভ আছে");
+      return;
+    }
+    setSavingNow(true);
+    try {
+      await Promise.all(keys.map((k) => flushCell(k)));
+      toast.success(`${keys.length}টি এন্ট্রি সেইভ হয়েছে`);
+    } finally {
+      setSavingNow(false);
+    }
   }
 
   function prevMonth() {
