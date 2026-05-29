@@ -55,10 +55,16 @@ export function MonitoringTable() {
   const { persons: personItems, locations: locationItems, refresh: refreshLists } = useDashboardLists();
   const PERSONS = useMemo(() => personItems.map((p) => p.name), [personItems]);
   const LOCATIONS = useMemo(() => locationItems.map((l) => l.name), [locationItems]);
-  const savingRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const savePromisesRef = useRef<Map<string, Promise<void>>>(new Map());
   const pendingRef = useRef<Map<string, Entry>>(new Map());
   const [pendingCount, setPendingCount] = useState(0);
+  const [syncingCount, setSyncingCount] = useState(0);
   const [savingNow, setSavingNow] = useState(false);
+
+  const updateSaveCounts = () => {
+    setPendingCount(pendingRef.current.size);
+    setSyncingCount(savePromisesRef.current.size);
+  };
 
   const days = daysInMonth(year, month);
   const monthStart = fmtDate(year, month, 1);
@@ -139,24 +145,16 @@ export function MonitoringTable() {
     setEntries((prev) => new Map(prev).set(key, next));
 
     pendingRef.current.set(key, next);
-    setPendingCount(pendingRef.current.size);
-
-    // Fire immediately — dropdown changes are discrete, no need to debounce
-    const existing = savingRef.current.get(key);
-    if (existing) clearTimeout(existing);
+    updateSaveCounts();
     void flushCell(key);
   }
 
-  async function flushCell(key: string) {
+  function flushCell(key: string): Promise<void> {
+    const running = savePromisesRef.current.get(key);
+    if (running) return running;
+
     const next = pendingRef.current.get(key);
-    if (!next) return;
-    const timer = savingRef.current.get(key);
-    if (timer) {
-      clearTimeout(timer);
-      savingRef.current.delete(key);
-    }
-    pendingRef.current.delete(key);
-    setPendingCount(pendingRef.current.size);
+    if (!next) return Promise.resolve();
 
     const payload = {
       entry_date: next.entry_date,
@@ -167,33 +165,63 @@ export function MonitoringTable() {
       slot_14: next.slot_14,
     };
 
-    if (typeof navigator !== "undefined" && navigator.onLine === false) {
-      queueOfflineEntry(payload);
-      return;
-    }
+    const promise = (async () => {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        queueOfflineEntry(payload);
+        if (pendingRef.current.get(key) === next) pendingRef.current.delete(key);
+        return;
+      }
 
-    // Fire-and-forget — optimistic UI is already applied; skip return roundtrip
-    const { error } = await supabase
-      .from("monitoring_entries")
-      .upsert(payload, { onConflict: "entry_date,person" });
-    if (error) {
-      queueOfflineEntry(payload);
-      toast.warning(`Save queued offline: ${error.message}`);
-    }
+      const { error } = await supabase
+        .from("monitoring_entries")
+        .upsert(payload, { onConflict: "entry_date,person" })
+        .select("entry_date,person")
+        .maybeSingle();
+
+      if (error) {
+        const isNetworkError = !error.code || /fetch|network|timeout/i.test(error.message);
+        if (isNetworkError) {
+          queueOfflineEntry(payload);
+          if (pendingRef.current.get(key) === next) pendingRef.current.delete(key);
+          toast.warning("Internet সমস্যা — ডাটা pending sync এ রাখা হয়েছে");
+        } else {
+          toast.error(`Save failed: ${error.message}`);
+        }
+        return;
+      }
+
+      if (pendingRef.current.get(key) === next) pendingRef.current.delete(key);
+    })().finally(() => {
+      savePromisesRef.current.delete(key);
+      updateSaveCounts();
+      if (pendingRef.current.has(key) && pendingRef.current.get(key) !== next) {
+        void flushCell(key);
+      }
+    });
+
+    savePromisesRef.current.set(key, promise);
+    updateSaveCounts();
+    return promise;
   }
 
   async function saveAllPending() {
     const keys = Array.from(pendingRef.current.keys());
-    if (keys.length === 0) {
+    if (keys.length === 0 && savePromisesRef.current.size === 0) {
       toast.message("সব সেইভ আছে");
       return;
     }
     setSavingNow(true);
     try {
-      await Promise.all(keys.map((k) => flushCell(k)));
-      toast.success(`${keys.length}টি এন্ট্রি সেইভ হয়েছে`);
+      keys.forEach((k) => { void flushCell(k); });
+      while (savePromisesRef.current.size > 0) {
+        await Promise.allSettled(Array.from(savePromisesRef.current.values()));
+      }
+      const remaining = pendingRef.current.size;
+      if (remaining === 0) toast.success("সব এন্ট্রি সেইভ হয়েছে");
+      else toast.warning(`${remaining}টি এন্ট্রি এখনো সেইভ হয়নি — আবার Save দিন`);
     } finally {
       setSavingNow(false);
+      updateSaveCounts();
     }
   }
 
