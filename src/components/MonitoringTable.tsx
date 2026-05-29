@@ -747,12 +747,14 @@ export function MonitoringTable() {
             disabled={savingNow}
             className={`rounded-md border px-3 py-1.5 text-sm transition disabled:opacity-50 ${
               pendingCount > 0
-                ? "bg-amber-500 text-white border-amber-600 hover:bg-amber-600"
-                : "bg-emerald-600 text-white border-emerald-700 hover:bg-emerald-700"
+                ? "bg-amber-500 text-primary-foreground border-amber-600 hover:bg-amber-600"
+                : syncingCount > 0
+                  ? "bg-primary text-primary-foreground border-primary hover:opacity-90"
+                  : "bg-emerald-600 text-primary-foreground border-emerald-700 hover:bg-emerald-700"
             }`}
             title="সব এন্ট্রি এখনই সেইভ করুন"
           >
-            {savingNow ? "Saving…" : pendingCount > 0 ? `Save Now (${pendingCount})` : "Saved"}
+            {savingNow || syncingCount > 0 ? "Saving…" : pendingCount > 0 ? `Save Now (${pendingCount})` : "Saved"}
           </button>
 
         </div>
