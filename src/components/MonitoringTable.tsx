@@ -141,12 +141,10 @@ export function MonitoringTable() {
     pendingRef.current.set(key, next);
     setPendingCount(pendingRef.current.size);
 
+    // Fire immediately — dropdown changes are discrete, no need to debounce
     const existing = savingRef.current.get(key);
     if (existing) clearTimeout(existing);
-    const t = setTimeout(() => {
-      void flushCell(key);
-    }, 150);
-    savingRef.current.set(key, t);
+    void flushCell(key);
   }
 
   async function flushCell(key: string) {
@@ -174,21 +172,14 @@ export function MonitoringTable() {
       return;
     }
 
-    const { data, error } = await supabase
+    // Fire-and-forget — optimistic UI is already applied; skip return roundtrip
+    const { error } = await supabase
       .from("monitoring_entries")
-      .upsert(payload, { onConflict: "entry_date,person" })
-      .select()
-      .single();
+      .upsert(payload, { onConflict: "entry_date,person" });
     if (error) {
       queueOfflineEntry(payload);
       toast.warning(`Save queued offline: ${error.message}`);
-      return;
     }
-    setEntries((prev) => {
-      const m = new Map(prev);
-      m.set(key as CellKey, data as Entry);
-      return m;
-    });
   }
 
   async function saveAllPending() {
