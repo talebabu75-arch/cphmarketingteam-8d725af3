@@ -56,6 +56,9 @@ export function MonitoringTable() {
   const PERSONS = useMemo(() => personItems.map((p) => p.name), [personItems]);
   const LOCATIONS = useMemo(() => locationItems.map((l) => l.name), [locationItems]);
   const savingRef = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const pendingRef = useRef<Map<string, Entry>>(new Map());
+  const [pendingCount, setPendingCount] = useState(0);
+  const [savingNow, setSavingNow] = useState(false);
 
   const days = daysInMonth(year, month);
   const monthStart = fmtDate(year, month, 1);
