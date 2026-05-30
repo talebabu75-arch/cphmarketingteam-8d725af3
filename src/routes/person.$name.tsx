@@ -81,39 +81,38 @@ function PersonProfile() {
     const counts: Record<string, number> = {};
     STATUSES.forEach((s) => (counts[s] = 0));
     let totalSlots = 0;
-    let extraDoff = 0;
+    let presentDays = 0, absentDays = 0;
     const locationCount: Record<string, number> = {};
     filtered.forEach((e) => {
-      let dayDoff = 0;
       const slotVals: string[] = [];
       SLOTS.forEach((s) => {
         const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
         if (v && STATUSES.includes(v as any)) slotVals.push(v);
       });
       const allOffDay = slotVals.length === SLOTS.length && slotVals.every((v) => v === "Off day");
+      let yC = 0, bC = 0;
       slotVals.forEach((v) => {
         if (allOffDay && v === "Off day") return;
         counts[v] += 1;
         totalSlots += 1;
-        if (v === "D.off") dayDoff += 1;
+        if (v === "Yes") yC += 1;
+        else if (v === "No" || v === "D.off" || v === "L.off") bC += 1;
       });
       if (allOffDay) {
         counts["Off day"] += 1;
         totalSlots += 1;
       }
-      if (dayDoff > 1) extraDoff += dayDoff - 1;
+      if (yC >= 2) presentDays += 1;
+      else if (bC >= 2) absentDays += 1;
       if (e.location) locationCount[e.location] = (locationCount[e.location] ?? 0) + 1;
     });
 
-    const yes = counts["Yes"] ?? 0;
-    const no = counts["No"] ?? 0;
-    const loff = counts["L.off"] ?? 0;
-    const denom = yes + no + loff + extraDoff;
-    const score = denom > 0 ? Math.round((yes / denom) * 100) : 0;
+    const denom = presentDays + absentDays;
+    const score = denom > 0 ? Math.round((presentDays / denom) * 100) : 0;
     const topLocations = Object.entries(locationCount)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5);
-    return { counts, totalSlots, extraDoff, score, topLocations, daysActive: filtered.length };
+    return { counts, totalSlots, presentDays, absentDays, score, topLocations, daysActive: filtered.length };
   }, [filtered]);
 
   const monthlyTrend = useMemo(() => {
