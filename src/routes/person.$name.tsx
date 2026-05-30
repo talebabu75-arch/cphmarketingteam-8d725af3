@@ -120,34 +120,33 @@ function PersonProfile() {
       name: new Date(year, i, 1).toLocaleString("en", { month: "short" }),
       Yes: 0, No: 0, "D.off": 0, "L.off": 0, "Off day": 0, score: 0,
     }));
-    const perMonth: Record<number, { yes: number; no: number; loff: number; extra: number }> = {};
+    const perMonth: Record<number, { present: number; absent: number }> = {};
     entries.forEach((e) => {
       const m = new Date(e.entry_date).getMonth();
-      if (!perMonth[m]) perMonth[m] = { yes: 0, no: 0, loff: 0, extra: 0 };
-      let dayDoff = 0;
+      if (!perMonth[m]) perMonth[m] = { present: 0, absent: 0 };
       const slotVals: string[] = [];
       SLOTS.forEach((s) => {
         const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
         if (v && STATUSES.includes(v as any)) slotVals.push(v);
       });
       const allOffDay = slotVals.length === SLOTS.length && slotVals.every((v) => v === "Off day");
+      let yC = 0, bC = 0;
       slotVals.forEach((v) => {
         if (allOffDay && v === "Off day") return;
         (arr[m] as any)[v] += 1;
-        if (v === "Yes") perMonth[m].yes += 1;
-        if (v === "No") perMonth[m].no += 1;
-        if (v === "L.off") perMonth[m].loff += 1;
-        if (v === "D.off") dayDoff += 1;
+        if (v === "Yes") yC += 1;
+        else if (v === "No" || v === "D.off" || v === "L.off") bC += 1;
       });
       if (allOffDay) (arr[m] as any)["Off day"] += 1;
-      if (dayDoff > 1) perMonth[m].extra += dayDoff - 1;
+      if (yC >= 2) perMonth[m].present += 1;
+      else if (bC >= 2) perMonth[m].absent += 1;
     });
 
     arr.forEach((row, i) => {
       const p = perMonth[i];
       if (!p) return;
-      const denom = p.yes + p.no + p.loff + p.extra;
-      row.score = denom > 0 ? Math.round((p.yes / denom) * 100) : 0;
+      const denom = p.present + p.absent;
+      row.score = denom > 0 ? Math.round((p.present / denom) * 100) : 0;
     });
     return arr;
   }, [entries, year]);
