@@ -87,26 +87,22 @@ export function LiveSummaryCards() {
       });
     });
 
-    // Monthly performance %
-    let yes = 0, no = 0, loff = 0, extraDoff = 0;
-    const byPersonDate: Record<string, number> = {};
+    // Monthly performance %: per day, >=2 Yes => Present day; >=2 of (No/D.off/L.off) => Absent day
+    let presentDays = 0, absentDays = 0;
     month.forEach((e) => {
       const vals = SLOTS.map((s) => e[s.key as "slot_10" | "slot_11" | "slot_14"]).filter(
         (v): v is string => !!v && STATUSES.includes(v as any),
       );
-      const allOff = vals.length === SLOTS.length && vals.every((v) => v === "Off day");
-      let dDoff = 0;
+      let yC = 0, bC = 0;
       vals.forEach((v) => {
-        if (allOff && v === "Off day") return;
-        if (v === "Yes") yes += 1;
-        else if (v === "No") no += 1;
-        else if (v === "L.off") loff += 1;
-        else if (v === "D.off") dDoff += 1;
+        if (v === "Yes") yC += 1;
+        else if (v === "No" || v === "D.off" || v === "L.off") bC += 1;
       });
-      if (dDoff > 1) extraDoff += dDoff - 1;
+      if (yC >= 2) presentDays += 1;
+      else if (bC >= 2) absentDays += 1;
     });
-    const denom = yes + no + loff + extraDoff;
-    const perf = denom > 0 ? Math.round((yes / denom) * 100) : 0;
+    const denom = presentDays + absentDays;
+    const perf = denom > 0 ? Math.round((presentDays / denom) * 100) : 0;
 
     return {
       present,
