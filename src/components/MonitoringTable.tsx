@@ -70,28 +70,35 @@ export function MonitoringTable() {
   const monthStart = fmtDate(year, month, 1);
   const monthEnd = fmtDate(year, month, days);
 
+  const loadEntries = useRef<() => Promise<void>>(async () => {});
   useEffect(() => {
     let active = true;
-    setLoading(true);
-    supabase
-      .from("monitoring_entries")
-      .select("entry_date,person,location,slot_10,slot_11,slot_14")
-      .gte("entry_date", monthStart)
-      .lte("entry_date", monthEnd)
-      .then(({ data, error }) => {
-        if (!active) return;
-        if (error) toast.error(error.message);
-        const map = new Map<CellKey, Entry>();
-        (data ?? []).forEach((row: any) => {
-          map.set(`${row.entry_date}|${row.person}`, row as Entry);
-        });
-        setEntries(map);
+    const doLoad = async () => {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("monitoring_entries")
+        .select("entry_date,person,location,slot_10,slot_11,slot_14")
+        .gte("entry_date", monthStart)
+        .lte("entry_date", monthEnd);
+      if (!active) return;
+      if (error) {
+        toast.error(error.message);
         setLoading(false);
+        return;
+      }
+      const map = new Map<CellKey, Entry>();
+      (data ?? []).forEach((row: any) => {
+        map.set(`${row.entry_date}|${row.person}`, row as Entry);
       });
+      setEntries(map);
+      setLoading(false);
+    };
+    loadEntries.current = doLoad;
+    void doLoad();
     return () => { active = false; };
   }, [monthStart, monthEnd]);
 
-  // Flush pending writes when leaving the month / closing tab / hiding
+  // Flush pending writes when leaving / hiding; reload fresh data on return
   useEffect(() => {
     const flushAll = () => {
       const keys = Array.from(pendingRef.current.keys());
@@ -105,13 +112,22 @@ export function MonitoringTable() {
       }
     };
     const onVisibility = () => {
-      if (document.visibilityState === "hidden") flushAll();
+      if (document.visibilityState === "hidden") {
+        flushAll();
+      } else if (document.visibilityState === "visible") {
+        // Page reopened — flush anything queued, then refetch latest from server
+        flushAll();
+        void loadEntries.current();
+      }
     };
+    const onFocus = () => { void loadEntries.current(); };
     window.addEventListener("beforeunload", onBeforeUnload);
     document.addEventListener("visibilitychange", onVisibility);
+    window.addEventListener("focus", onFocus);
     return () => {
       window.removeEventListener("beforeunload", onBeforeUnload);
       document.removeEventListener("visibilitychange", onVisibility);
+      window.removeEventListener("focus", onFocus);
       flushAll();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
