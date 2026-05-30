@@ -367,9 +367,9 @@ function PersonProfile() {
             {/* Summary cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               <SummaryCard label="Performance Score" value={`${stats.score}%`} accent />
-              <SummaryCard label="Days Active" value={stats.daysActive} />
+              <SummaryCard label="Present Days" value={stats.presentDays} />
+              <SummaryCard label="Absent Days" value={stats.absentDays} />
               <SummaryCard label="Total Slots" value={stats.totalSlots} />
-              <SummaryCard label="Extra D.off" value={stats.extraDoff} />
             </div>
 
             {/* Status chips */}
