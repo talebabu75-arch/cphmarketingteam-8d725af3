@@ -176,7 +176,7 @@ export function MonthlyAnalysis({
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b">
           <h3 className="text-sm font-medium">Performance Ranking</h3>
-          <p className="text-xs text-muted-foreground">Score = Yes / (Yes + No + L.off + Extra D.off) × 100 • দিনে ১ এর বেশি D.off পেনাল্টি হিসেবে গণনা হয়</p>
+          <p className="text-xs text-muted-foreground">Score = Present দিন / (Present + Absent দিন) × 100 • দিনে ২+ Yes = Present, ২+ No/D.off/L.off = Absent</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -187,7 +187,8 @@ export function MonthlyAnalysis({
                 {STATUSES.map((s) => (
                   <th key={s} className="px-3 py-2 text-center">{s}</th>
                 ))}
-                <th className="px-3 py-2 text-center">Total</th>
+                <th className="px-3 py-2 text-center">Present</th>
+                <th className="px-3 py-2 text-center">Absent</th>
                 <th className="px-3 py-2 text-center">Score</th>
               </tr>
             </thead>
