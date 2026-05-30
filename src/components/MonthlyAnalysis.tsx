@@ -31,43 +31,45 @@ export function MonthlyAnalysis({
   persons: string[];
   monthName: string;
 }) {
-  const { perPerson, totals, totalSlots, extraDoffPerPerson } = useMemo(() => {
+  const { perPerson, totals, totalSlots, dayStatsPerPerson } = useMemo(() => {
     const perPerson: Record<string, Record<string, number>> = {};
     const totals: Record<string, number> = {};
-    const extraDoffPerPerson: Record<string, number> = {};
+    const dayStatsPerPerson: Record<string, { present: number; absent: number }> = {};
     STATUSES.forEach((s) => (totals[s] = 0));
     persons.forEach((p) => {
       perPerson[p] = {};
       STATUSES.forEach((s) => (perPerson[p][s] = 0));
-      extraDoffPerPerson[p] = 0;
+      dayStatsPerPerson[p] = { present: 0, absent: 0 };
     });
 
     let totalSlots = 0;
     entries.forEach((e) => {
       if (!perPerson[e.person]) return;
-      let dayDoff = 0;
       const slotVals: string[] = [];
       SLOTS.forEach((s) => {
         const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
         if (v && STATUSES.includes(v as any)) slotVals.push(v);
       });
       const allOffDay = slotVals.length === SLOTS.length && slotVals.every((v) => v === "Off day");
+      let yC = 0, bC = 0;
       slotVals.forEach((v) => {
-        if (allOffDay && v === "Off day") return; // collapse: count once below
+        if (allOffDay && v === "Off day") return;
         perPerson[e.person][v] += 1;
         totals[v] += 1;
         totalSlots += 1;
-        if (v === "D.off") dayDoff += 1;
+        if (v === "Yes") yC += 1;
+        else if (v === "No" || v === "D.off" || v === "L.off") bC += 1;
       });
       if (allOffDay) {
         perPerson[e.person]["Off day"] += 1;
         totals["Off day"] += 1;
         totalSlots += 1;
       }
-      // Per day, 1 D.off is allowed (neutral). Extras count as penalty.
-      if (dayDoff > 1) extraDoffPerPerson[e.person] += dayDoff - 1;
+      // Day-based: >=2 Yes => Present day; >=2 (No/D.off/L.off) => Absent day
+      if (yC >= 2) dayStatsPerPerson[e.person].present += 1;
+      else if (bC >= 2) dayStatsPerPerson[e.person].absent += 1;
     });
-    return { perPerson, totals, totalSlots, extraDoffPerPerson };
+    return { perPerson, totals, totalSlots, dayStatsPerPerson };
   }, [entries, persons]);
 
 
@@ -80,17 +82,14 @@ export function MonthlyAnalysis({
     (d) => d.value > 0,
   );
 
-  // Performance score: Yes positive; No, L.off, and extra D.off (>1/day) reduce score
+  // Performance score: Present days / (Present + Absent) days × 100
   const performance = persons.map((p) => {
     const c = perPerson[p];
     const total = STATUSES.reduce((a, s) => a + c[s], 0);
-    const yes = c["Yes"] ?? 0;
-    const no = c["No"] ?? 0;
-    const loff = c["L.off"] ?? 0;
-    const extraDoff = extraDoffPerPerson[p] ?? 0;
-    const denom = yes + no + loff + extraDoff;
-    const score = denom > 0 ? Math.round((yes / denom) * 100) : 0;
-    return { name: p, yes, no, total, score, extraDoff };
+    const { present, absent } = dayStatsPerPerson[p] ?? { present: 0, absent: 0 };
+    const denom = present + absent;
+    const score = denom > 0 ? Math.round((present / denom) * 100) : 0;
+    return { name: p, total, score, present, absent };
   }).sort((a, b) => b.score - a.score);
 
   const [mounted, setMounted] = useState(false);
@@ -177,7 +176,7 @@ export function MonthlyAnalysis({
       <div className="rounded-xl border bg-card shadow-sm overflow-hidden">
         <div className="px-4 py-3 border-b">
           <h3 className="text-sm font-medium">Performance Ranking</h3>
-          <p className="text-xs text-muted-foreground">Score = Yes / (Yes + No + L.off + Extra D.off) × 100 • দিনে ১ এর বেশি D.off পেনাল্টি হিসেবে গণনা হয়</p>
+          <p className="text-xs text-muted-foreground">Score = Present দিন / (Present + Absent দিন) × 100 • দিনে ২+ Yes = Present, ২+ No/D.off/L.off = Absent</p>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -188,7 +187,8 @@ export function MonthlyAnalysis({
                 {STATUSES.map((s) => (
                   <th key={s} className="px-3 py-2 text-center">{s}</th>
                 ))}
-                <th className="px-3 py-2 text-center">Total</th>
+                <th className="px-3 py-2 text-center">Present</th>
+                <th className="px-3 py-2 text-center">Absent</th>
                 <th className="px-3 py-2 text-center">Score</th>
               </tr>
             </thead>
@@ -202,7 +202,8 @@ export function MonthlyAnalysis({
                       {perPerson[row.name][s] || "—"}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-center font-medium">{row.total}</td>
+                  <td className="px-3 py-2 text-center font-medium">{row.present || "—"}</td>
+                  <td className="px-3 py-2 text-center font-medium">{row.absent || "—"}</td>
                   <td className="px-3 py-2 text-center">
                     <span className={`inline-block min-w-[52px] rounded-md px-2 py-1 text-xs font-semibold ${
                       row.score >= 80 ? "bg-status-yes text-status-yes-foreground"
