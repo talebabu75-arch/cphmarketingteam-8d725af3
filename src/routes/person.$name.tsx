@@ -255,7 +255,7 @@ function PersonProfile() {
     stat("Yes", stats.counts["Yes"] ?? 0, W / 2 - 320);
     stat("Days Active", stats.daysActive, W / 2 - 100);
     stat("Total Slots", stats.totalSlots, W / 2 + 120);
-    stat("Extra D.off", stats.extraDoff, W / 2 + 320);
+    stat("Absent Days", stats.absentDays, W / 2 + 320);
 
     // Footer
     ctx.fillStyle = "#9ca3af";
