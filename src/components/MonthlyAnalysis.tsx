@@ -202,8 +202,8 @@ export function MonthlyAnalysis({
                       {perPerson[row.name][s] || "—"}
                     </td>
                   ))}
-                  <td className="px-3 py-2 text-center font-medium text-status-yes-foreground">{row.present || "—"}</td>
-                  <td className="px-3 py-2 text-center font-medium text-status-no-foreground">{row.absent || "—"}</td>
+                  <td className="px-3 py-2 text-center font-medium">{row.present || "—"}</td>
+                  <td className="px-3 py-2 text-center font-medium">{row.absent || "—"}</td>
                   <td className="px-3 py-2 text-center">
                     <span className={`inline-block min-w-[52px] rounded-md px-2 py-1 text-xs font-semibold ${
                       row.score >= 80 ? "bg-status-yes text-status-yes-foreground"
