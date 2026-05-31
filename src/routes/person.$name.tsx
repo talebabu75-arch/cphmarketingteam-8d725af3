@@ -173,12 +173,24 @@ function PersonProfile() {
     return { tier: "Participant", emoji: "🎖️", grad: ["#bae6fd", "#0369a1"], accent: "#0c4a6e" };
   };
 
-  const downloadAchievementCard = () => {
+  const downloadAchievementCard = async () => {
     const W = 1200, H = 1500;
     const canvas = document.createElement("canvas");
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext("2d")!;
     const rank = getRank(stats.score);
+
+    // Preload avatar (CORS-safe) if available
+    let avatarImg: HTMLImageElement | null = null;
+    if (avatarUrl) {
+      avatarImg = await new Promise<HTMLImageElement | null>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = avatarUrl;
+      });
+    }
 
     // Background gradient
     const bg = ctx.createLinearGradient(0, 0, W, H);
