@@ -64,25 +64,41 @@ function Index() {
             />
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-xs text-muted-foreground hidden sm:inline">{email}</span>
-            <Link
-              to="/tour-plan"
-              className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition"
-            >
-              <MapPin className="size-3.5" /> Tour Plan
-            </Link>
-            <Link
-              to="/reports"
-              className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition"
-            >
-              <FileText className="size-3.5" /> Reports
-            </Link>
-            <button
-              onClick={() => supabase.auth.signOut()}
-              className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition"
-            >
-              <LogOut className="size-3.5" /> Sign out
-            </button>
+            <span className="text-xs text-muted-foreground hidden sm:inline truncate max-w-[180px]">{email}</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                aria-label="Open menu"
+                className="inline-flex items-center justify-center rounded-md border bg-card p-2 hover:bg-accent transition focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <Menu className="size-5" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="truncate">{email}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/" className="flex items-center gap-2 cursor-pointer">
+                    <Home className="size-4" /> Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/tour-plan" className="flex items-center gap-2 cursor-pointer">
+                    <MapPin className="size-4" /> Tour Plan
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/reports" className="flex items-center gap-2 cursor-pointer">
+                    <FileText className="size-4" /> Reports
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={() => supabase.auth.signOut()}
+                  className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
+                >
+                  <LogOut className="size-4" /> Sign out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </header>
