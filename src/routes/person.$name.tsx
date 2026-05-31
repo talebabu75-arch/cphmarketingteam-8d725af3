@@ -220,9 +220,30 @@ function PersonProfile() {
     ctx.fillStyle = "#6b7280";
     ctx.fillText("Performance Recognition", W / 2, 240);
 
-    // Emoji medal
-    ctx.font = "200px system-ui, sans-serif";
-    ctx.fillText(rank.emoji, W / 2, 460);
+    // Avatar photo (or emoji medal fallback)
+    if (avatarImg) {
+      const ax = W / 2, ay = 400, ar = 130;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ax, ay, ar, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(avatarImg, ax - ar, ay - ar, ar * 2, ar * 2);
+      ctx.restore();
+      // Ring
+      ctx.beginPath();
+      ctx.arc(ax, ay, ar, 0, Math.PI * 2);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = rank.accent;
+      ctx.stroke();
+      // Small emoji badge bottom-right of avatar
+      ctx.font = "70px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(rank.emoji, ax + ar - 10, ay + ar + 10);
+    } else {
+      ctx.font = "200px system-ui, sans-serif";
+      ctx.fillText(rank.emoji, W / 2, 460);
+    }
 
     // Tier
     ctx.font = "bold 64px system-ui, sans-serif";
