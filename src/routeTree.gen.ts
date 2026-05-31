@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as TourPlanRouteImport } from './routes/tour-plan'
 import { Route as ReportsRouteImport } from './routes/reports'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
@@ -17,6 +18,11 @@ import { Route as AdminUsersRouteImport } from './routes/admin.users'
 import { Route as AdminApprovalsRouteImport } from './routes/admin.approvals'
 import { Route as AdminActivityRouteImport } from './routes/admin.activity'
 
+const TourPlanRoute = TourPlanRouteImport.update({
+  id: '/tour-plan',
+  path: '/tour-plan',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ReportsRoute = ReportsRouteImport.update({
   id: '/reports',
   path: '/reports',
@@ -57,6 +63,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/tour-plan': typeof TourPlanRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -66,6 +73,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/tour-plan': typeof TourPlanRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -76,6 +84,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
   '/reports': typeof ReportsRoute
+  '/tour-plan': typeof TourPlanRoute
   '/admin/activity': typeof AdminActivityRoute
   '/admin/approvals': typeof AdminApprovalsRoute
   '/admin/users': typeof AdminUsersRoute
@@ -87,6 +96,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reports'
+    | '/tour-plan'
     | '/admin/activity'
     | '/admin/approvals'
     | '/admin/users'
@@ -96,6 +106,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reports'
+    | '/tour-plan'
     | '/admin/activity'
     | '/admin/approvals'
     | '/admin/users'
@@ -105,6 +116,7 @@ export interface FileRouteTypes {
     | '/'
     | '/login'
     | '/reports'
+    | '/tour-plan'
     | '/admin/activity'
     | '/admin/approvals'
     | '/admin/users'
@@ -115,6 +127,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
   ReportsRoute: typeof ReportsRoute
+  TourPlanRoute: typeof TourPlanRoute
   AdminActivityRoute: typeof AdminActivityRoute
   AdminApprovalsRoute: typeof AdminApprovalsRoute
   AdminUsersRoute: typeof AdminUsersRoute
@@ -123,6 +136,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/tour-plan': {
+      id: '/tour-plan'
+      path: '/tour-plan'
+      fullPath: '/tour-plan'
+      preLoaderRoute: typeof TourPlanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/reports': {
       id: '/reports'
       path: '/reports'
@@ -179,6 +199,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
   ReportsRoute: ReportsRoute,
+  TourPlanRoute: TourPlanRoute,
   AdminActivityRoute: AdminActivityRoute,
   AdminApprovalsRoute: AdminApprovalsRoute,
   AdminUsersRoute: AdminUsersRoute,
