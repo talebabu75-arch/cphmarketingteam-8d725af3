@@ -56,14 +56,18 @@ function PersonProfile() {
       setLoading(true);
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      const { data, error } = await supabase
-        .from("monitoring_entries")
-        .select("entry_date,person,location,slot_10,slot_11,slot_14")
-        .eq("person", name)
-        .gte("entry_date", start)
-        .lte("entry_date", end)
-        .order("entry_date");
+      const [{ data, error }, personRes] = await Promise.all([
+        supabase
+          .from("monitoring_entries")
+          .select("entry_date,person,location,slot_10,slot_11,slot_14")
+          .eq("person", name)
+          .gte("entry_date", start)
+          .lte("entry_date", end)
+          .order("entry_date"),
+        supabase.from("dashboard_persons").select("avatar_url").eq("name", name).maybeSingle(),
+      ]);
       if (!error) setEntries((data as Entry[]) ?? []);
+      setAvatarUrl((personRes.data as { avatar_url: string | null } | null)?.avatar_url ?? null);
       setLoading(false);
     })();
   }, [authed, name, year]);
