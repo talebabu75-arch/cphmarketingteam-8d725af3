@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MonitoringTable } from "@/components/MonitoringTable";
 import { LiveSummaryCards } from "@/components/LiveSummaryCards";
 import { QuickAddFab } from "@/components/QuickAddFab";
-import { useDashboardLists } from "@/lib/use-lists";
-import { LogOut, BarChart3, User, FileText, MapPin, Menu, Home } from "lucide-react";
+import { useDashboardLists, uploadPersonAvatar, removePersonAvatar, type ListItem } from "@/lib/use-lists";
+import { LogOut, BarChart3, User, FileText, MapPin, Menu, Home, Camera, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -122,32 +122,92 @@ function Index() {
 }
 
 function PersonProfiles() {
-  const { persons, loading } = useDashboardLists();
+  const { persons, loading, refresh } = useDashboardLists();
   if (loading || persons.length === 0) return null;
   return (
     <section className="rounded-xl border bg-card shadow-sm p-4">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold">Team Profiles</h2>
-        <span className="text-xs text-muted-foreground">বিস্তারিত পারফর্মেন্স রিপোর্ট দেখতে ক্লিক করুন</span>
+        <span className="text-xs text-muted-foreground">ছবিতে ক্লিক করে পরিবর্তন করুন • কার্ডে ক্লিক করে প্রোফাইল</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
         {persons.map((p) => (
-          <Link
-            key={p.id}
-            to="/person/$name"
-            params={{ name: p.name }}
-            className="group rounded-lg border bg-background p-3 hover:bg-accent hover:border-primary/50 transition flex items-center gap-3"
-          >
-            <div className="size-10 rounded-full bg-primary/10 text-primary grid place-items-center group-hover:bg-primary group-hover:text-primary-foreground transition">
-              <User className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <div className="text-sm font-medium truncate">{p.name}</div>
-              <div className="text-xs text-muted-foreground">View profile</div>
-            </div>
-          </Link>
+          <PersonCard key={p.id} person={p} onChange={refresh} />
         ))}
       </div>
     </section>
+  );
+}
+
+function PersonCard({ person, onChange }: { person: ListItem; onChange: () => void }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setBusy(true);
+    await uploadPersonAvatar(person.id, file);
+    setBusy(false);
+    onChange();
+  };
+
+  const handleRemove = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!confirm("ছবি মুছে ফেলতে চান?")) return;
+    setBusy(true);
+    await removePersonAvatar(person.id);
+    setBusy(false);
+    onChange();
+  };
+
+  return (
+    <div className="group rounded-lg border bg-background p-3 hover:bg-accent hover:border-primary/50 transition flex items-center gap-3 relative">
+      <div className="relative shrink-0">
+        <button
+          type="button"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); fileRef.current?.click(); }}
+          className="size-10 rounded-full overflow-hidden bg-primary/10 text-primary grid place-items-center hover:ring-2 hover:ring-primary transition"
+          aria-label="Change photo"
+          disabled={busy}
+        >
+          {person.avatar_url ? (
+            <img src={person.avatar_url} alt={person.name} className="size-full object-cover" />
+          ) : (
+            <User className="size-5" />
+          )}
+        </button>
+        <span className="absolute -bottom-1 -right-1 size-4 rounded-full bg-primary text-primary-foreground grid place-items-center opacity-0 group-hover:opacity-100 transition pointer-events-none">
+          <Camera className="size-2.5" />
+        </span>
+        {person.avatar_url && (
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="absolute -top-1 -right-1 size-4 rounded-full bg-destructive text-destructive-foreground grid place-items-center opacity-0 group-hover:opacity-100 transition"
+            aria-label="Remove photo"
+          >
+            <X className="size-2.5" />
+          </button>
+        )}
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleFile}
+        />
+      </div>
+      <Link
+        to="/person/$name"
+        params={{ name: person.name }}
+        className="min-w-0 flex-1"
+      >
+        <div className="text-sm font-medium truncate">{person.name}</div>
+        <div className="text-xs text-muted-foreground">{busy ? "Saving…" : "View profile"}</div>
+      </Link>
+    </div>
   );
 }

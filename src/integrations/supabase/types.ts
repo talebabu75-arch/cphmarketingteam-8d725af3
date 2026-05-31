@@ -76,18 +76,21 @@ export type Database = {
       }
       dashboard_persons: {
         Row: {
+          avatar_url: string | null
           created_at: string
           id: string
           name: string
           sort_order: number
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           id?: string
           name: string
           sort_order?: number
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           id?: string
           name?: string

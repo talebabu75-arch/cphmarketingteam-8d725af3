@@ -36,6 +36,7 @@ function PersonProfile() {
   const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [period, setPeriod] = useState<Period>("monthly");
@@ -55,14 +56,18 @@ function PersonProfile() {
       setLoading(true);
       const start = `${year}-01-01`;
       const end = `${year}-12-31`;
-      const { data, error } = await supabase
-        .from("monitoring_entries")
-        .select("entry_date,person,location,slot_10,slot_11,slot_14")
-        .eq("person", name)
-        .gte("entry_date", start)
-        .lte("entry_date", end)
-        .order("entry_date");
+      const [{ data, error }, personRes] = await Promise.all([
+        supabase
+          .from("monitoring_entries")
+          .select("entry_date,person,location,slot_10,slot_11,slot_14")
+          .eq("person", name)
+          .gte("entry_date", start)
+          .lte("entry_date", end)
+          .order("entry_date"),
+        supabase.from("dashboard_persons").select("avatar_url").eq("name", name).maybeSingle(),
+      ]);
       if (!error) setEntries((data as Entry[]) ?? []);
+      setAvatarUrl((personRes.data as { avatar_url: string | null } | null)?.avatar_url ?? null);
       setLoading(false);
     })();
   }, [authed, name, year]);
@@ -168,12 +173,24 @@ function PersonProfile() {
     return { tier: "Participant", emoji: "🎖️", grad: ["#bae6fd", "#0369a1"], accent: "#0c4a6e" };
   };
 
-  const downloadAchievementCard = () => {
+  const downloadAchievementCard = async () => {
     const W = 1200, H = 1500;
     const canvas = document.createElement("canvas");
     canvas.width = W; canvas.height = H;
     const ctx = canvas.getContext("2d")!;
     const rank = getRank(stats.score);
+
+    // Preload avatar (CORS-safe) if available
+    let avatarImg: HTMLImageElement | null = null;
+    if (avatarUrl) {
+      avatarImg = await new Promise<HTMLImageElement | null>((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = avatarUrl;
+      });
+    }
 
     // Background gradient
     const bg = ctx.createLinearGradient(0, 0, W, H);
@@ -203,9 +220,30 @@ function PersonProfile() {
     ctx.fillStyle = "#6b7280";
     ctx.fillText("Performance Recognition", W / 2, 240);
 
-    // Emoji medal
-    ctx.font = "200px system-ui, sans-serif";
-    ctx.fillText(rank.emoji, W / 2, 460);
+    // Avatar photo (or emoji medal fallback)
+    if (avatarImg) {
+      const ax = W / 2, ay = 400, ar = 130;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(ax, ay, ar, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(avatarImg, ax - ar, ay - ar, ar * 2, ar * 2);
+      ctx.restore();
+      // Ring
+      ctx.beginPath();
+      ctx.arc(ax, ay, ar, 0, Math.PI * 2);
+      ctx.lineWidth = 8;
+      ctx.strokeStyle = rank.accent;
+      ctx.stroke();
+      // Small emoji badge bottom-right of avatar
+      ctx.font = "70px system-ui, sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(rank.emoji, ax + ar - 10, ay + ar + 10);
+    } else {
+      ctx.font = "200px system-ui, sans-serif";
+      ctx.fillText(rank.emoji, W / 2, 460);
+    }
 
     // Tier
     ctx.font = "bold 64px system-ui, sans-serif";
@@ -296,8 +334,12 @@ function PersonProfile() {
             <Link to="/" className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
               <ArrowLeft className="size-3.5" /> Back
             </Link>
-            <div className="size-9 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-              <User className="size-5" />
+            <div className="size-10 rounded-lg overflow-hidden bg-primary text-primary-foreground grid place-items-center shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={name} className="size-full object-cover" />
+              ) : (
+                <User className="size-5" />
+              )}
             </div>
             <div>
               <h1 className="text-lg font-semibold tracking-tight">{name}</h1>
