@@ -5,7 +5,7 @@ import { MonitoringTable } from "@/components/MonitoringTable";
 import { LiveSummaryCards } from "@/components/LiveSummaryCards";
 import { QuickAddFab } from "@/components/QuickAddFab";
 import { useDashboardLists } from "@/lib/use-lists";
-import { LogOut, BarChart3, User, FileText } from "lucide-react";
+import { LogOut, BarChart3, User, FileText, MapPin } from "lucide-react";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -57,6 +57,12 @@ function Index() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-xs text-muted-foreground hidden sm:inline">{email}</span>
+            <Link
+              to="/tour-plan"
+              className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition"
+            >
+              <MapPin className="size-3.5" /> Tour Plan
+            </Link>
             <Link
               to="/reports"
               className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition"
