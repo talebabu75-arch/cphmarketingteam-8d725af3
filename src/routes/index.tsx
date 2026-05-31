@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { MonitoringTable } from "@/components/MonitoringTable";
 import { LiveSummaryCards } from "@/components/LiveSummaryCards";
 import { QuickAddFab } from "@/components/QuickAddFab";
-import { useDashboardLists } from "@/lib/use-lists";
-import { LogOut, BarChart3, User, FileText, MapPin, Menu, Home } from "lucide-react";
+import { useDashboardLists, uploadPersonAvatar, removePersonAvatar, type ListItem } from "@/lib/use-lists";
+import { LogOut, BarChart3, User, FileText, MapPin, Menu, Home, Camera, X } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
