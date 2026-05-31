@@ -2,7 +2,31 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-export type ListItem = { id: string; name: string; sort_order: number };
+export type ListItem = { id: string; name: string; sort_order: number; avatar_url?: string | null };
+
+export async function uploadPersonAvatar(personId: string, file: File): Promise<string | null> {
+  const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+  const path = `${personId}-${Date.now()}.${ext}`;
+  const { error: upErr } = await supabase.storage.from("member-avatars").upload(path, file, {
+    cacheControl: "3600",
+    upsert: true,
+    contentType: file.type,
+  });
+  if (upErr) { toast.error(`Upload failed: ${upErr.message}`); return null; }
+  const { data } = supabase.storage.from("member-avatars").getPublicUrl(path);
+  const url = data.publicUrl;
+  const { error: updErr } = await supabase.from("dashboard_persons").update({ avatar_url: url }).eq("id", personId);
+  if (updErr) { toast.error(`Save failed: ${updErr.message}`); return null; }
+  toast.success("ছবি আপডেট হয়েছে");
+  return url;
+}
+
+export async function removePersonAvatar(personId: string): Promise<boolean> {
+  const { error } = await supabase.from("dashboard_persons").update({ avatar_url: null }).eq("id", personId);
+  if (error) { toast.error(`Remove failed: ${error.message}`); return false; }
+  toast.success("ছবি মুছে ফেলা হয়েছে");
+  return true;
+}
 
 export function useDashboardLists() {
   const [persons, setPersons] = useState<ListItem[]>([]);
