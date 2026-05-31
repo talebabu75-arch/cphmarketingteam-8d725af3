@@ -5,7 +5,15 @@ import { MonitoringTable } from "@/components/MonitoringTable";
 import { LiveSummaryCards } from "@/components/LiveSummaryCards";
 import { QuickAddFab } from "@/components/QuickAddFab";
 import { useDashboardLists } from "@/lib/use-lists";
-import { LogOut, BarChart3, User, FileText, MapPin } from "lucide-react";
+import { LogOut, BarChart3, User, FileText, MapPin, Menu, Home } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Route = createFileRoute("/")({
   head: () => ({
