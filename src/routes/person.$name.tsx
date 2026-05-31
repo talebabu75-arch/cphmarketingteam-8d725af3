@@ -301,8 +301,12 @@ function PersonProfile() {
             <Link to="/" className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition">
               <ArrowLeft className="size-3.5" /> Back
             </Link>
-            <div className="size-9 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-              <User className="size-5" />
+            <div className="size-10 rounded-lg overflow-hidden bg-primary text-primary-foreground grid place-items-center shrink-0">
+              {avatarUrl ? (
+                <img src={avatarUrl} alt={name} className="size-full object-cover" />
+              ) : (
+                <User className="size-5" />
+              )}
             </div>
             <div>
               <h1 className="text-lg font-semibold tracking-tight">{name}</h1>
