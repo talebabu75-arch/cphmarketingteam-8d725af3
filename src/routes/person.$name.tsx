@@ -36,6 +36,7 @@ function PersonProfile() {
   const navigate = useNavigate();
   const [authed, setAuthed] = useState(false);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [year, setYear] = useState<number>(new Date().getFullYear());
   const [period, setPeriod] = useState<Period>("monthly");
