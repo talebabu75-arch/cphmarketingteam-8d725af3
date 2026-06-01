@@ -115,12 +115,19 @@ export function MonitoringTable() {
       if (document.visibilityState === "hidden") {
         flushAll();
       } else if (document.visibilityState === "visible") {
-        // Page reopened — flush anything queued, then refetch latest from server
+        // Page reopened — stalled in-flight fetches (mobile backgrounding) may never resolve.
+        // Drop tracked promises so new flushCell calls actually re-send.
+        savePromisesRef.current.clear();
+        updateSaveCounts();
         flushAll();
         void loadEntries.current();
       }
     };
-    const onFocus = () => { void loadEntries.current(); };
+    const onFocus = () => {
+      savePromisesRef.current.clear();
+      updateSaveCounts();
+      void loadEntries.current();
+    };
     window.addEventListener("beforeunload", onBeforeUnload);
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("focus", onFocus);
