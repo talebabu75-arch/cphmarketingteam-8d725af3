@@ -252,7 +252,14 @@ function TourPlanPage() {
 
   function printPlan() {
     const monthName = new Date(year, month - 1).toLocaleString("en", { month: "long" });
-    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Tour Plan ${monthName} ${year}</title>
+    const esc = (s: string) =>
+      String(s ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Tour Plan ${esc(monthName)} ${year}</title>
       <style>
         body{font-family:Arial,sans-serif;color:#0f172a;padding:24px;}
         h1{margin:0 0 4px;font-size:20px}
@@ -266,13 +273,13 @@ function TourPlanPage() {
         .sig{margin-top:40px;display:flex;justify-content:space-between;font-size:11px;color:#475569}
         .sig div{border-top:1px solid #94a3b8;width:200px;padding-top:6px;text-align:center}
       </style></head><body>
-      <h1>Monthly Tour Plan — ${monthName} ${year}</h1>
+      <h1>Monthly Tour Plan — ${esc(monthName)} ${year}</h1>
       ${selectedPersons.map((person) => `
         <div class="person">
-          <h2>Team Member: ${person}</h2>
+          <h2>Team Member: ${esc(person)}</h2>
           <table><thead><tr><th style="width:90px">Date</th><th style="width:200px">Location</th><th>Notes</th></tr></thead>
           <tbody>
-            ${buildExportRows(person).map((r) => `<tr><td>${r.display}</td><td>${r.location}</td><td>${r.notes}</td></tr>`).join("")}
+            ${buildExportRows(person).map((r) => `<tr><td>${esc(r.display)}</td><td>${esc(r.location)}</td><td>${esc(r.notes)}</td></tr>`).join("")}
           </tbody></table>
           <div class="sig"><div>Prepared by</div><div>Authorized Signature</div></div>
         </div>
