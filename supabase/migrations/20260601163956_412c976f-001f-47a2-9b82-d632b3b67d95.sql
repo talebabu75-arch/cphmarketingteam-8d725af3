@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Member avatars are publicly accessible" ON storage.objects;
