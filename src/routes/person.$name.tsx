@@ -222,7 +222,7 @@ function PersonProfile() {
 
     // Avatar photo (or emoji medal fallback)
     if (avatarImg) {
-      const ax = W / 2, ay = 400, ar = 130;
+      const ax = W / 2, ay = 370, ar = 110;
       ctx.save();
       ctx.beginPath();
       ctx.arc(ax, ay, ar, 0, Math.PI * 2);
@@ -237,18 +237,29 @@ function PersonProfile() {
       ctx.strokeStyle = rank.accent;
       ctx.stroke();
       // Small emoji badge bottom-right of avatar
-      ctx.font = "70px system-ui, sans-serif";
+      ctx.font = "56px system-ui, sans-serif";
       ctx.textAlign = "center";
-      ctx.fillText(rank.emoji, ax + ar - 10, ay + ar + 10);
+      ctx.textBaseline = "middle";
+      const bx = ax + ar * 0.75, by = ay + ar * 0.75;
+      ctx.beginPath();
+      ctx.arc(bx, by, 38, 0, Math.PI * 2);
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = rank.accent;
+      ctx.stroke();
+      ctx.fillStyle = rank.accent;
+      ctx.fillText(rank.emoji, bx, by + 2);
+      ctx.textBaseline = "alphabetic";
     } else {
-      ctx.font = "200px system-ui, sans-serif";
-      ctx.fillText(rank.emoji, W / 2, 460);
+      ctx.font = "180px system-ui, sans-serif";
+      ctx.fillText(rank.emoji, W / 2, 450);
     }
 
     // Tier
-    ctx.font = "bold 64px system-ui, sans-serif";
+    ctx.font = "bold 56px system-ui, sans-serif";
     ctx.fillStyle = rank.accent;
-    ctx.fillText(`${rank.tier} Tier`, W / 2, 550);
+    ctx.fillText(`${rank.tier} Tier`, W / 2, 580);
 
     // Awarded to
     ctx.font = "22px system-ui, sans-serif";
