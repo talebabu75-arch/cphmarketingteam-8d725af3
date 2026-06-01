@@ -2,11 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { STATUSES, SLOTS, statusClass } from "@/lib/dashboard-config";
-import { ArrowLeft, User, Award } from "lucide-react";
+import { ArrowLeft, User, Award, FileDown, ChevronDown } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
   PieChart, Pie, Cell, LineChart, Line,
 } from "recharts";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { generateReportPDF, generateCombinedReportPDF, type PdfReportOptions } from "@/lib/pdf-report";
 
 type Entry = {
   entry_date: string;
@@ -325,6 +329,112 @@ function PersonProfile() {
     }, "image/png");
   };
 
+  /* ---------- PDF Reports ---------- */
+  function computeStatsFor(items: Entry[]) {
+    const counts: Record<string, number> = {};
+    STATUSES.forEach((s) => (counts[s] = 0));
+    let totalSlots = 0, presentDays = 0, absentDays = 0;
+    const locationCount: Record<string, number> = {};
+    items.forEach((e) => {
+      const slotVals: string[] = [];
+      SLOTS.forEach((s) => {
+        const v = e[s.key as "slot_10" | "slot_11" | "slot_14"];
+        if (v && STATUSES.includes(v as any)) slotVals.push(v);
+      });
+      const allOffDay = slotVals.length === SLOTS.length && slotVals.every((v) => v === "Off day");
+      let yC = 0, bC = 0;
+      slotVals.forEach((v) => {
+        if (allOffDay && v === "Off day") return;
+        counts[v] += 1;
+        totalSlots += 1;
+        if (v === "Yes") yC += 1;
+        else if (v === "No" || v === "D.off" || v === "L.off") bC += 1;
+      });
+      if (allOffDay) { counts["Off day"] += 1; totalSlots += 1; }
+      if (yC >= 2) presentDays += 1;
+      else if (bC >= 2) absentDays += 1;
+      if (e.location) locationCount[e.location] = (locationCount[e.location] ?? 0) + 1;
+    });
+    const denom = presentDays + absentDays;
+    const score = denom > 0 ? Math.round((presentDays / denom) * 100) : 0;
+    const topLocations = Object.entries(locationCount).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    return { counts, totalSlots, presentDays, absentDays, score, topLocations };
+  }
+
+  function buildReport(label: string, items: Entry[]): Omit<PdfReportOptions, "filename"> {
+    const s = computeStatsFor(items);
+    return {
+      title: `${name} — Performance Report`,
+      subtitle: label,
+      summary: [
+        { label: "Score", value: `${s.score}%` },
+        { label: "Present Days", value: s.presentDays },
+        { label: "Absent Days", value: s.absentDays },
+        { label: "Total Slots", value: s.totalSlots },
+      ],
+      sections: [
+        {
+          title: "Status Distribution",
+          head: ["Status", "Count"],
+          body: STATUSES.map((st) => [st, s.counts[st] ?? 0]),
+        },
+        ...(s.topLocations.length ? [{
+          title: "Top Locations",
+          head: ["#", "Location", "Visits"],
+          body: s.topLocations.map(([loc, n], i) => [i + 1, loc, n] as (string | number)[]),
+        }] : []),
+        {
+          title: "Detailed Entries",
+          head: ["Date", "Location", ...SLOTS.map((sl) => sl.label)],
+          body: items.length
+            ? items.map((e) => [
+                e.entry_date,
+                e.location ?? "-",
+                ...SLOTS.map((sl) => e[sl.key as "slot_10" | "slot_11" | "slot_14"] ?? "-"),
+              ])
+            : [["-", "-", ...SLOTS.map(() => "-")]],
+        },
+      ],
+    };
+  }
+
+  const safeName = name.replace(/\s+/g, "_");
+
+  const downloadCurrentPeriodPDF = async () => {
+    const rep = buildReport(periodLabel, filtered);
+    await generateReportPDF({ ...rep, filename: `${safeName}-${periodLabel.replace(/\s+/g, "_")}.pdf` });
+  };
+
+  const downloadYearPDF = async () => {
+    const yearItems = entries.filter((e) => new Date(e.entry_date).getFullYear() === year);
+    const rep = buildReport(`Year ${year}`, yearItems);
+    await generateReportPDF({ ...rep, filename: `${safeName}-Year-${year}.pdf` });
+  };
+
+  const downloadCombinedPDF = async () => {
+    const yearItems = entries.filter((e) => new Date(e.entry_date).getFullYear() === year);
+    const reports: Omit<PdfReportOptions, "filename">[] = [
+      buildReport(`Year ${year} — Summary`, yearItems),
+    ];
+    for (let q = 0; q < 4; q++) {
+      const qItems = yearItems.filter((e) => Math.floor(new Date(e.entry_date).getMonth() / 3) === q);
+      if (qItems.length) reports.push(buildReport(`Q${q + 1} ${year}`, qItems));
+    }
+    for (let m = 0; m < 12; m++) {
+      const mItems = yearItems.filter((e) => new Date(e.entry_date).getMonth() === m);
+      if (mItems.length) {
+        const ml = new Date(year, m, 1).toLocaleString("en", { month: "long" });
+        reports.push(buildReport(`${ml} ${year}`, mItems));
+      }
+    }
+    await generateCombinedReportPDF({
+      filename: `${safeName}-All-Reports-${year}.pdf`,
+      coverTitle: `${name} — All Reports`,
+      coverSubtitle: `Yearly • Quarterly • Monthly — ${year}`,
+      reports,
+    });
+  };
+
   function roundRect(c: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
     c.beginPath();
     c.moveTo(x + r, y);
@@ -396,6 +506,30 @@ function PersonProfile() {
             >
               <Award className="size-3.5" /> Achievement Card
             </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  disabled={loading}
+                  className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition disabled:opacity-50"
+                >
+                  <FileDown className="size-3.5" /> PDF Report <ChevronDown className="size-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel>Download as PDF</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={downloadCurrentPeriodPDF}>
+                  <FileDown className="size-3.5 mr-2" /> Current Period ({periodLabel})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadYearPDF}>
+                  <FileDown className="size-3.5 mr-2" /> Full Year ({year}) Summary
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={downloadCombinedPDF}>
+                  <FileDown className="size-3.5 mr-2" /> All Reports Combined ({year})
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {period === "quarterly" && (
               <select
                 value={quarter}
