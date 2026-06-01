@@ -195,11 +195,15 @@ export function MonitoringTable() {
         return;
       }
 
-      const { error } = await supabase
+      const upsertPromise = supabase
         .from("monitoring_entries")
         .upsert(payload, { onConflict: "entry_date,person" })
         .select("entry_date,person")
         .maybeSingle();
+      const timeoutPromise = new Promise<{ error: { message: string; code?: string } }>((resolve) =>
+        setTimeout(() => resolve({ error: { message: "timeout" } }), 15000),
+      );
+      const { error } = (await Promise.race([upsertPromise, timeoutPromise])) as { error: any };
 
       if (error) {
         const isNetworkError = !error.code || /fetch|network|timeout/i.test(error.message);
