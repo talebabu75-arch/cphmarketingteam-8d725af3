@@ -506,6 +506,30 @@ function PersonProfile() {
             >
               <Award className="size-3.5" /> Achievement Card
             </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  disabled={loading}
+                  className="inline-flex items-center gap-1.5 rounded-md border bg-card px-3 py-1.5 text-sm hover:bg-accent transition disabled:opacity-50"
+                >
+                  <FileDown className="size-3.5" /> PDF Report <ChevronDown className="size-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-60">
+                <DropdownMenuLabel>Download as PDF</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={downloadCurrentPeriodPDF}>
+                  <FileDown className="size-3.5 mr-2" /> Current Period ({periodLabel})
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadYearPDF}>
+                  <FileDown className="size-3.5 mr-2" /> Full Year ({year}) Summary
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={downloadCombinedPDF}>
+                  <FileDown className="size-3.5 mr-2" /> All Reports Combined ({year})
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             {period === "quarterly" && (
               <select
                 value={quarter}
