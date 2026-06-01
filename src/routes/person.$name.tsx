@@ -2,11 +2,15 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { STATUSES, SLOTS, statusClass } from "@/lib/dashboard-config";
-import { ArrowLeft, User, Award } from "lucide-react";
+import { ArrowLeft, User, Award, FileDown, ChevronDown } from "lucide-react";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, CartesianGrid,
   PieChart, Pie, Cell, LineChart, Line,
 } from "recharts";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
+import { generateReportPDF, generateCombinedReportPDF, type PdfReportOptions } from "@/lib/pdf-report";
 
 type Entry = {
   entry_date: string;
